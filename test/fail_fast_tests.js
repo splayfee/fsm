@@ -86,7 +86,7 @@ describe("Assert", function () {
     var Car = function(make, model) {
       this.make = make;
       this.model = model;
-    }
+    };
     it("returns true", function () {
       expect(Assert.isInstance(new Car("Mazda", "6"), Car)).to.eql(true);
     });
