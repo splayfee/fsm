@@ -1,3 +1,7 @@
-coverage/
 .idea
-node_modules/
+.history
+.nyc_ouput
+.scannerwork
+.vscode
+coverage
+node_modules
