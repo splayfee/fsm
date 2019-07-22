@@ -42,7 +42,7 @@ yarn-error.log
 testem.log
 /typings
 .scannerwork/
-.nyc_output/
+.nyc_output
 
 # System Files
 .DS_Store
