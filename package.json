@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
