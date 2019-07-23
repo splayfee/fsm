@@ -1,6 +1,6 @@
 # Edium Finite State Machine
 ## Overview
-**Edium FSM** is a simple finite state machine written in TypeScript used for gaming or workflow systems. It supports local and global transitions/triggers, entry and exit actions, and the ability to block state transitions before exit. it works both on the client and the server in plain JavaScript or with TypeScript.
+**Edium FSM** is a simple finite state machine written in TypeScript used for gaming or workflow systems. It supports local and global transitions/triggers, entry and exit actions, and the ability to block state transitions before exit. It works both on the client and the server in plain JavaScript or with TypeScript.
 
 ## Features
 - Unlimited number of states
@@ -22,6 +22,9 @@
 ```
 
 ## Tests/Coverage
+
+The code is fully unit tested with near 100 test percent coverage. Additonally, all code has been vetted using Sonar Scanner (TypeScript) and Code Metrics.
+
 ```bash
   $ npm run test
   $ npm run coverage
@@ -32,13 +35,13 @@
 Begin by referencing the module (browser):
 
 ```javascript
-import { State, StateMachine, Transition } from '@edium/fsm';
+import { State, StateMachine } from '@edium/fsm';
 ```
 
 or through Node.js:
 
 ```javascript
-const { State, StateMachine, Transition } = require('@edium/fsm');
+const { State, StateMachine } = require('@edium/fsm');
 ```
 
 Finally, wire up your state machine and start it:
