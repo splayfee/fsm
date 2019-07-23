@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
@@ -40,7 +40,13 @@
   "types": "dist/index.d.ts",
   "keywords": [
     "finite state machine",
-    "workflow"
+    "fsm",
+    "workflow",
+    "game engine",
+    "state",
+    "transitions",
+    "triggers",
+    "actions"
   ],
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
