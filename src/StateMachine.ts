@@ -89,7 +89,7 @@ export default class StateMachine {
 
     // Throw an error if the machine is already in the requested state.
     if (newState === this._currentState) {
-      this._throwStateMachineError(`Already in state: currentState:" ${this._currentState.name}`);
+      this._throwStateMachineError(`Already in state: currentState: ${this._currentState.name}.`);
     }
 
     // Perform an exit action if it exists and record whether to allow the state change.

@@ -219,7 +219,23 @@ describe('test the state machine', (): void => {
     s1.addTransition('next', s1);
     expect((): void => {
       stateMachine.start();
-    }).to.throw(Error, 'State Machine (my first state machine) - Already in state: currentState:" my first state');
+    }).to.throw(Error, 'State Machine (my first state machine) - Already in state: currentState: my first state.');
+  });
+
+  it('should throw an error when trying to transition from a state that is not the current state', (): void => {
+    const entryAction = (): void => {
+    };
+
+    const stateMachine: StateMachine = new StateMachine('my first state machine');
+    const s1: State = stateMachine.createState('my first state', false, entryAction);
+    const s2: State = stateMachine.createState('my second state', false, entryAction);
+    const s3: State = stateMachine.createState('my third state', false, entryAction);
+    s1.addTransition('next', s2);
+    s2.addTransition('other', s3);
+    expect((): void => {
+      stateMachine.start(s1);
+      s3.trigger('other');
+    }).to.throw(Error, 'State Machine (my first state machine) - Invalid Transition - triggerId: my-first-state:other.');
   });
 
   it('should go to the previous state', (): void => {
@@ -265,7 +281,7 @@ describe('test the state machine', (): void => {
     }).to.throw(Error, 'State Machine (my first state machine) - Invalid Transition - triggerId: my-first-state:next.');
   });
 
-  it('should throw an error on an invalid transition', (): void => {
+  it('should throw an error when transitioning on not started', (): void => {
     const entryAction = (state: State): void => {
       state.trigger('next');
     };

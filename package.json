@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
@@ -47,13 +47,13 @@
   "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.7",
-    "@typescript-eslint/eslint-plugin": "^1.11.0",
-    "@typescript-eslint/parser": "^1.11.0",
+    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/parser": "^1.13.0",
     "chai": "^4.2.0",
-    "eslint": "^6.0.1",
+    "eslint": "^6.1.0",
     "istanbul": "^0.4.5",
     "jsonlint": "^1.6.3",
-    "mocha": "^6.1.4",
+    "mocha": "^6.2.0",
     "nyc": "^14.1.1",
     "sonar-scanner": "^3.1.0",
     "ts-node": "^8.3.0",
