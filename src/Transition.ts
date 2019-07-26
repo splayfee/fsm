@@ -36,5 +36,3 @@ export default class Transition {
     return this._targetState;
   }
 }
-
-module.exports = Transition;

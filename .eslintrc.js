@@ -25,6 +25,7 @@ module.exports = {
       'error',
       'always'
     ],
+    '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/interface-name-prefix': [2, 'always'],
     '@typescript-eslint/indent': [2, 2],
     'indent': 'off',

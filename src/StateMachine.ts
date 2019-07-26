@@ -20,13 +20,18 @@ export default class StateMachine {
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
+   * @param [context] An optional context that will automatically be sent to every state action.
    */
-  public constructor(name: string) {
+  public constructor(name: string, context?: any) {
     this._name = name;
+    this._context = context;
   }
 
   /** A unique identifier for this state machine. */
   private _name: string;
+
+  /** An optional context that will automatically be sent to every state action. */
+  private _context?: any;
 
   /** A collection of all possible global machine transitions between states. */
   private _transitions: Map<string, Transition> = new Map();
@@ -94,7 +99,7 @@ export default class StateMachine {
 
     // Perform an exit action if it exists and record whether to allow the state change.
     if (this._currentState && this._currentState.exitAction) {
-      allowExit = this._currentState.exitAction(this._currentState);
+      allowExit = this._currentState.exitAction(this._currentState, this._context);
     }
 
     // The current state can cancel the state change request if necessary.
@@ -104,7 +109,7 @@ export default class StateMachine {
 
       // Perform any entrance action if it exists
       if (this._currentState && this._currentState.entryAction) {
-        this._currentState.entryAction(newState);
+        this._currentState.entryAction(newState, this._context);
       }
     }
   }

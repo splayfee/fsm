@@ -200,6 +200,30 @@ describe('test the state machine', (): void => {
     expect(stateMachine.isComplete).to.equal(true);
   });
 
+  it('should provide context to all actions', (): void => {
+    const context: object = {
+      testEntry: 'test123',
+      testExit: 'test456'
+    };
+
+    const entryAction: Function = (state: State, context: any): void => {
+      expect(context).to.exist;
+      expect(context.testEntry).to.equal('test123');
+    };
+
+    const exitAction: Function = (state: State, context: any): void => {
+      expect(context).to.exist;
+      expect(context.testExit).to.equal('test456');
+    };
+
+    const stateMachine: StateMachine = new StateMachine('my first state machine', context);
+    const s1: State = stateMachine.createState('my first state', false, entryAction, exitAction);
+    const s2: State = stateMachine.createState('my second state', true);
+    s1.addTransition('next', s2);
+    stateMachine.start();
+    stateMachine.trigger('next');
+  });
+
   it('should get a state by its id', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
     stateMachine.createState('my first state', false);

@@ -14,7 +14,7 @@
 - Unlimited local transitions
 - Unlimited global transtions/triggers that bypass the current state's transition rules
 - State changes occur via triggers
-
+- When creating the machine, optionally send in a context which is sent to all state actions.
 ## Installation
 
 ```bash
