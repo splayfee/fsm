@@ -47,17 +47,17 @@ const { State, StateMachine } = require('@edium/fsm');
 Finally, wire up your state machine and start it:
 
 ```Javascript
-const entryAction = ( state ) => {
+const entryAction = ( state, context ) => {
   state.trigger( "next" );
 };
 
-const exitAction = ( state ) => {
+const exitAction = ( state, context ) => {
   // Returning false will cancel the state transition
   return true;
 };
 
-const decideAction = ( state ) => {
-  const index = Math.floor( Math.random() * 2 );
+const decideAction = ( state, context ) => {
+  const index = context.randomize();
   if ( index === 0 ) {
       state.trigger( "goto3" );
   } else if ( index === 1 ) {
@@ -69,7 +69,13 @@ const finalAction = ( state ) => {
   // Can perform some final actions, the state machine is finished running.
 };
 
-const stateMachine = new StateMachine('My first state machine');
+const context = {
+  randomize: () => {
+    return Math.floor( Math.random() * 2 );
+  }
+};
+
+const stateMachine = new StateMachine('My first state machine', context);
 const s1 = stateMachine.createState( "My first state", false, entryAction);
 const s2 = stateMachine.createState( "My second state", false, decideAction, exitAction); // Trivial use of exit action as an example.
 const s3 = stateMachine.createState( "My third state", false, entryAction);
