@@ -67,6 +67,11 @@ export default class StateMachine {
     return isComplete;
   }
 
+  /** Returns the current state object or undefined if not set. */
+  public get currentState(): State | undefined {
+    return this._currentState;
+  }
+
   /** Flag that indicates whether the state machine has started. */
   public get started(): boolean {
     return (this._currentState instanceof State);

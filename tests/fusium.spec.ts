@@ -56,7 +56,7 @@ describe('test states', (): void => {
     const state1: State = stateMachine.createState('my first state', false);
     stateMachine.start();
     // @ts-ignore
-    expect(state1).to.deep.equal(stateMachine._currentState);
+    expect(state1).to.deep.equal(stateMachine.currentState);
   });
 
   it('should start with an explicit start state', (): void => {
@@ -64,8 +64,7 @@ describe('test states', (): void => {
     stateMachine.createState('my first state', false);
     const state2: State = stateMachine.createState('my second state', false);
     stateMachine.start(state2);
-    // @ts-ignore
-    expect(state2).to.deep.equal(stateMachine._currentState);
+    expect(state2).to.deep.equal(stateMachine.currentState);
   });
 
   it('should transition from current state to previous state', (): void => {
