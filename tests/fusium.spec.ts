@@ -166,9 +166,9 @@ describe('test global state transition', (): void => {
     stateMachine.createState('my first state', false);
     stateMachine.createState('my second state', false);
     const state3: State = stateMachine.createState('my third state', false);
-    stateMachine.addGlobalTransition('goto3', state3);
+    stateMachine.addGlobalTransition('gotoThree', state3);
     stateMachine.start();
-    stateMachine.trigger('goto3', true);
+    stateMachine.trigger('gotoThree', true);
     expect(stateMachine.started).to.equal(true);
     // @ts-ignore
     expect(stateMachine._currentState).to.deep.equal(state3);
@@ -345,10 +345,10 @@ describe('test the state machine', (): void => {
       expect(state).to.be.instanceof(State);
       const index = Math.floor(Math.random() * 2);
       if (index === 0) {
-        state.trigger('goto3');
+        state.trigger('gotoThree');
 
       } else if (index === 1) {
-        state.trigger('goto4');
+        state.trigger('gotoThree');
       }
     };
 
@@ -378,8 +378,8 @@ describe('test the state machine', (): void => {
     s5.entryAction = finalAction;
 
     s1.addTransition('next', s2);
-    s2.addTransition('goto3', s3);
-    s2.addTransition('goto4', s4);
+    s2.addTransition('gotoThree', s3);
+    s2.addTransition('gotoFour', s4);
     s3.addTransition('next', s5);
     s4.addTransition('next', s5);
 

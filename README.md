@@ -59,9 +59,9 @@ const exitAction = ( state, context ) => {
 const decideAction = ( state, context ) => {
   const index = context.randomize();
   if ( index === 0 ) {
-      state.trigger( "goto3" );
+      state.trigger( "gotoThree" );
   } else if ( index === 1 ) {
-      state.trigger( "goto4" );
+      state.trigger( "gotoFour" );
   }
 };
 
@@ -86,8 +86,8 @@ var s5 = stateMachine.createState( "My fifth and final state", true, finalAction
 
 // Define all state transitions
 s1.addTransition( "next", s2 );
-s2.addTransition( "goto3", s3 );
-s2.addTransition( "goto4", s4 );
+s2.addTransition( "gotoThree", s3 );
+s2.addTransition( "gotoFour", s4 );
 s3.addTransition( "next", s5 );
 s4.addTransition( "next", s5 );
 

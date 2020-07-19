@@ -23,6 +23,7 @@
       ]
     },
     "lib": [
+      "dom",
       "esnext",
       "scripthost"
     ]

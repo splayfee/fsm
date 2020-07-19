@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 
-import changeCase from 'change-case';
+import { kebabCase } from 'lodash';
 import StateMachine from './StateMachine';
 import Transition from './Transition';
 
@@ -44,7 +44,7 @@ export default class State {
    * An identifier for this state. Not gauaranteed unique. Format is snake case and derived from the state's name.
    */
   public get id(): string {
-    return changeCase.kebabCase(this.name);
+    return kebabCase(this.name);
   }
 
   private _isComplete: boolean;
@@ -68,7 +68,7 @@ export default class State {
    * @param triggerId The initial trigger id.
    */
   private _getLocalTriggerId(triggerId: string): string {
-    return `${this.id}:${changeCase.kebabCase(triggerId)}`;
+    return `${this.id}:${kebabCase(triggerId)}`;
   }
 
   /**

@@ -8,7 +8,7 @@
 
 import State from './State';
 import Transition from './Transition';
-import changeCase from 'change-case';
+import { kebabCase } from 'lodash';
 
 /**
  * This class defines a new state machine. The state machine takes in
@@ -55,7 +55,7 @@ export default class StateMachine {
 
   /** An identifier for this state machine. Not gauaranteed unique. Format is snake case and derived from the state machine's name. */
   public get id(): string {
-    return changeCase.kebabCase(this.name);
+    return kebabCase(this.name);
   }
 
   /** Flag that indicates whether the state machine is in a completed state. */
@@ -132,7 +132,7 @@ export default class StateMachine {
 
     // Look for a global state transition
     if (!transition) {
-      transition = this._transitions.get(triggerId);
+      transition = this._transitions.get(kebabCase(triggerId));
     }
 
     if (!transition) {
@@ -161,7 +161,8 @@ export default class StateMachine {
    * @param targetState The target state.
    */
   public addGlobalTransition(triggerId: string, targetState: State): void {
-    this._transitions.set(changeCase.kebabCase(triggerId), new Transition(triggerId, targetState));
+    console.log('triggerId: ', kebabCase(triggerId));
+    this._transitions.set(kebabCase(triggerId), new Transition(triggerId, targetState));
   }
 
   /**
@@ -194,7 +195,7 @@ export default class StateMachine {
    * @returns The state corresponding to the id, or null if one is not found.
    */
   public getStateById(id: string): State | undefined {
-    return this._states.get(changeCase.kebabCase(id));
+    return this._states.get(kebabCase(id));
   }
 
   /**
@@ -235,7 +236,7 @@ export default class StateMachine {
    */
   public trigger(triggerId: string, sendGlobal: boolean = false): void {
     if (!sendGlobal && this._currentState) {
-      triggerId = `${this._currentState.id}:${changeCase.kebabCase(triggerId)}`;
+      triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
     }
     this._transitionHandler(triggerId);
   }
