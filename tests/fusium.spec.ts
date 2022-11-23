@@ -392,4 +392,35 @@ describe('test the state machine', (): void => {
     stateMachine.start(s1);
   });
 
+  it('should call state machine callbacks during transitions', (): void => {
+    let entryCount = 0;
+    let exitCount= 0;
+    const STATE1_NAME = 'state1';
+    const STATE2_NAME = 'state2';
+
+    const onEntry: TEntryActionFn = (state) => {
+      entryCount += 1;
+    }
+    const onExit: TExitActionFn = (state): boolean => {
+      exitCount += 1;
+      return true;
+    }
+
+    const stateMachine: StateMachine = new StateMachine(
+      'my first state machine',
+      undefined,
+      onEntry,
+      onExit
+    );
+    const s1: State = stateMachine.createState(STATE1_NAME, false);
+    const s2: State = stateMachine.createState(STATE2_NAME, false);
+    s1.addTransition('goTwo', s2);
+
+    stateMachine.start(s1);
+    stateMachine.trigger('goTwo');
+
+    expect(entryCount).to.equal(2);
+    expect(exitCount).to.equal(1);
+  });
+
 });
