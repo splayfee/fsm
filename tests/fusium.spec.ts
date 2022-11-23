@@ -2,6 +2,7 @@
 
 import * as chai from 'chai';
 import { State, StateMachine, Transition } from '../src/index';
+import { TEntryActionFn, TExitActionFn } from '../src/State';
 
 const expect = chai.expect;
 describe('test states', (): void => {
@@ -200,22 +201,27 @@ describe('test the state machine', (): void => {
   });
 
   it('should provide context to all actions', (): void => {
-    const context: object = {
+    type ContextType = {
+      testEntry: string;
+      testExit: string;
+    };
+    const context = {
       testEntry: 'test123',
       testExit: 'test456'
     };
 
-    const entryAction: Function = (state: State, context: any): void => {
+    const entryAction: TEntryActionFn<ContextType> = (state, context): void => {
       expect(context).to.exist;
-      expect(context.testEntry).to.equal('test123');
+      expect(context?.testEntry).to.equal('test123');
     };
 
-    const exitAction: Function = (state: State, context: any): void => {
+    const exitAction: TExitActionFn<ContextType> = (state, context): boolean => {
       expect(context).to.exist;
-      expect(context.testExit).to.equal('test456');
+      expect(context?.testExit).to.equal('test456');
+      return true;
     };
 
-    const stateMachine: StateMachine = new StateMachine('my first state machine', context);
+    const stateMachine: StateMachine = new StateMachine<ContextType>('my first state machine', context);
     const s1: State = stateMachine.createState('my first state', false, entryAction, exitAction);
     const s2: State = stateMachine.createState('my second state', true);
     s1.addTransition('next', s2);
