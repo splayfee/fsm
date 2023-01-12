@@ -10,8 +10,11 @@ import { kebabCase } from 'lodash';
 import StateMachine from './StateMachine';
 import Transition from './Transition';
 
+export type TEntryActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => void;
+export type TExitActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => boolean;
+
 /** This class defines a new state for the state machine. */
-export default class State {
+export default class State <TContext = any>{
   /**
    * Instantiates a new state machine.
    * @param stateMachine The state machine this state is associated with.
@@ -54,10 +57,10 @@ export default class State {
   }
 
   /** An optional action that is invoked whenever the state machine enters this state. */
-  public entryAction?: Function = undefined;
+  public entryAction?: TEntryActionFn<TContext>;
 
   /** An optional action that is invoked whenever the state machine exits this state. */
-  public exitAction?: Function = undefined;
+  public exitAction?: TExitActionFn<TContext>;
 
   //-----------------------------------------------------------------------
   // METHODS

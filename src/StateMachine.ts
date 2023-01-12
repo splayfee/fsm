@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 
-import State from './State';
+import State, { TEntryActionFn, TExitActionFn } from './State';
 import Transition from './Transition';
 import { kebabCase } from 'lodash';
 
@@ -16,13 +16,13 @@ import { kebabCase } from 'lodash';
  * of each state and enforces transition rules. An application can have
  * multiple state machines.
  */
-export default class StateMachine {
+export default class StateMachine<TContext = any> {
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
    * @param [context] An optional context that will automatically be sent to every state action.
    */
-  public constructor(name: string, context?: any) {
+  public constructor(name: string, context?: TContext) {
     this._name = name;
     this._context = context;
   }
@@ -31,7 +31,7 @@ export default class StateMachine {
   private _name: string;
 
   /** An optional context that will automatically be sent to every state action. */
-  private _context?: any;
+  private _context?: TContext;
 
   /** A collection of all possible global machine transitions between states. */
   private _transitions: Map<string, Transition> = new Map();
@@ -40,13 +40,13 @@ export default class StateMachine {
   private _states: Map<string, State> = new Map();
 
   /** The state that should be entered when the machine is first started. */
-  private _startState?: State = undefined;
+  private _startState?: State<TContext> = undefined;
 
   /** The current state of the machine. */
-  private _currentState?: State = undefined;
+  private _currentState?: State<TContext> = undefined;
 
   /** The previous state of the machine; undefiend if there is no previous state. */
-  private _previousState?: State = undefined;
+  private _previousState?: State<TContext> = undefined;
 
   /** A unique identifier for this state machine. */
   public get name(): string {
@@ -173,7 +173,12 @@ export default class StateMachine {
    * @param [exitAction] An optional action that fires whenever the state machine exits this state.
    * @returns The newly created state.
    */
-  public createState(id: string, isComplete: boolean = false, entryAction: Function | undefined = undefined, exitAction: Function | undefined = undefined): State {
+  public createState(
+    id: string,
+    isComplete: boolean = false,
+    entryAction?: TEntryActionFn<TContext>,
+    exitAction?: TExitActionFn<TContext>,
+  ): State<TContext> {
     const state = new State(this, id, isComplete);
     state.entryAction = entryAction;
     state.exitAction = exitAction;
