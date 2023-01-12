@@ -22,10 +22,20 @@ export default class StateMachine<TContext = any> {
    * @param name A unique identifier for this state machine.
    * @param [context] An optional context that will automatically be sent to every state action.
    */
-  public constructor(name: string, context?: TContext) {
+  public constructor(
+    name: string,
+    context?: TContext,
+    entryAction?: TEntryActionFn<TContext>,
+    exitAction?: TExitActionFn<TContext>
+  ) {
     this._name = name;
     this._context = context;
+    this._entryAction = entryAction;
+    this._exitAction = exitAction;
   }
+
+  private _entryAction?: TEntryActionFn<TContext>;
+  private _exitAction?: TExitActionFn<TContext>;
 
   /** A unique identifier for this state machine. */
   private _name: string;
@@ -107,6 +117,10 @@ export default class StateMachine<TContext = any> {
       allowExit = this._currentState.exitAction(this._currentState, this._context);
     }
 
+    if (this._currentState && this._exitAction) {
+      allowExit = this._exitAction(this._currentState, this._context);
+    }
+
     // The current state can cancel the state change request if necessary.
     if (allowExit) {
       this._previousState = this._currentState;
@@ -115,6 +129,9 @@ export default class StateMachine<TContext = any> {
       // Perform any entrance action if it exists
       if (this._currentState && this._currentState.entryAction) {
         this._currentState.entryAction(newState, this._context);
+      }
+      if (this._entryAction) {
+        this._entryAction(newState, this._context);
       }
     }
   }
