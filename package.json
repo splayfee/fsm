@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
@@ -16,8 +16,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "docs": "./node_modules/.bin/typedoc --out docs --mode file src --ignoreCompilerErrors",
-    "sonar-scanner": "node_modules/.bin/sonar-scanner",
+    "docs": "./node_modules/.bin/typedoc src/index.ts --out docs",
     "test": "./node_modules/.bin/mocha --timeout 999999 --colors --require ts-node/register tests/**/*.spec.ts",
     "coverage": "nyc npm run test"
   },
@@ -51,24 +50,25 @@
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
   "devDependencies": {
-    "@types/chai": "^4.3.4",
-    "@types/lodash": "^4.14.188",
-    "@types/mocha": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.43.0",
-    "@typescript-eslint/parser": "^5.43.0",
+    "@types/chai": "^4.3.16",
+    "@types/lodash": "^4.17.6",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "^20.14.9",
+    "@typescript-eslint/eslint-plugin": "^7.15.0",
+    "@typescript-eslint/parser": "^7.15.0",
     "chai": "^4.3.7",
-    "eslint": "^8.27.0",
+    "eslint": "^9.6.0",
     "istanbul": "^0.4.5",
     "jsonlint": "^1.6.3",
-    "mocha": "^10.1.0",
-    "nyc": "^15.1.0",
-    "sonar-scanner": "^3.1.0",
-    "ts-node": "^10.9.1",
+    "mocha": "^10.6.0",
+    "nyc": "^17.0.0",
+    "ts-node": "^10.9.2",
     "typedoc": "^0.23.21",
-    "typescript": "^4.8.4"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
+    "global": "^4.4.0",
     "lodash": "^4.17.21",
-    "tslib": "^2.4.1"
+    "tslib": "^2.6.3"
   }
 }
