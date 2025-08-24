@@ -16,7 +16,6 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
-    "coverage": "nyc npm run test",
     "docs": "./node_modules/.bin/typedoc src/index.ts --out docs",
     "lint": "eslint --fix --stats .",
     "test:unit": "cross-env NODE_ENV=test jest --coverage --silent",
@@ -55,6 +54,5 @@
     "typedoc": "^0.28.10",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.40.0"
-  },
-  "dependencies": {}
+  }
 }
