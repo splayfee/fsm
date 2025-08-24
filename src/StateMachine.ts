@@ -44,10 +44,10 @@ export default class StateMachine<TContext = any> {
   private _context?: TContext;
 
   /** A collection of all possible global machine transitions between states. */
-  private _transitions: Map<string, Transition> = new Map();
+  private _transitions = new Map<string, Transition>();
 
   /** A collection of all possible states for this state machine. */
-  private _states: Map<string, State> = new Map();
+  private _states = new Map<string, State>();
 
   /** The state that should be entered when the machine is first started. */
   private _startState?: State<TContext> = undefined;
@@ -84,13 +84,12 @@ export default class StateMachine<TContext = any> {
 
   /** Flag that indicates whether the state machine has started. */
   public get started(): boolean {
-    return (this._currentState instanceof State);
+    return this._currentState instanceof State;
   }
 
   // ----------------------------------------------------------
   // METHODS
   // ----------------------------------------------------------
-
 
   /**
    * This method throws an error with state machine details prefixed to the message.
@@ -113,7 +112,7 @@ export default class StateMachine<TContext = any> {
     }
 
     // Perform an exit action if it exists and record whether to allow the state change.
-    if (this._currentState && this._currentState.exitAction) {
+    if (this._currentState?.exitAction) {
       allowExit = this._currentState.exitAction(this._currentState, this._context);
     }
 
@@ -127,7 +126,7 @@ export default class StateMachine<TContext = any> {
       this._currentState = newState;
 
       // Perform any entrance action if it exists
-      if (this._currentState && this._currentState.entryAction) {
+      if (this._currentState?.entryAction) {
         this._currentState.entryAction(newState, this._context);
       }
       if (this._entryAction) {
@@ -145,7 +144,9 @@ export default class StateMachine<TContext = any> {
       this._throwStateMachineError('not started.');
     }
 
-    let transition: Transition | undefined = (this._currentState) ? this._currentState.getTransition(triggerId) : undefined;
+    let transition: Transition | undefined = this._currentState
+      ? this._currentState.getTransition(triggerId)
+      : undefined;
 
     // Look for a global state transition
     if (!transition) {
@@ -192,9 +193,9 @@ export default class StateMachine<TContext = any> {
    */
   public createState(
     id: string,
-    isComplete: boolean = false,
+    isComplete = false,
     entryAction?: TEntryActionFn<TContext>,
-    exitAction?: TExitActionFn<TContext>,
+    exitAction?: TExitActionFn<TContext>
   ): State<TContext> {
     const state = new State(this, id, isComplete);
     state.entryAction = entryAction;
@@ -232,7 +233,9 @@ export default class StateMachine<TContext = any> {
 
     // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
-      this._throwStateMachineError('No states have been defined. The state machine cannot be started.');
+      this._throwStateMachineError(
+        'No states have been defined. The state machine cannot be started.'
+      );
     }
 
     this._startState = startState;
@@ -243,7 +246,7 @@ export default class StateMachine<TContext = any> {
    * Resets the state machine.
    * @param [restart] An optional flag that indicates the state machine should be restarted after reset.
    */
-  public reset(restart: boolean = false): void {
+  public reset(restart = false): void {
     this._previousState = undefined;
     this._currentState = undefined;
     if (restart) {
@@ -256,7 +259,7 @@ export default class StateMachine<TContext = any> {
    * @param triggerId A unique identifier for the trigger.
    * @param [sendGlobal] Tells the system to send a global transition rather than a state-specific transition.
    */
-  public trigger(triggerId: string, sendGlobal: boolean = false): void {
+  public trigger(triggerId: string, sendGlobal = false): void {
     if (!sendGlobal && this._currentState) {
       triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
     }

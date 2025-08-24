@@ -15,10 +15,10 @@ import State from './State';
  */
 export default class Transition {
   /**
-     * Instantiates a new transition.
-     * @param triggerId A unique identifier for the trigger.
-     * @param targetState The new state that will be entered if the transition is successful.
-     */
+   * Instantiates a new transition.
+   * @param triggerId A unique identifier for the trigger.
+   * @param targetState The new state that will be entered if the transition is successful.
+   */
   public constructor(triggerId: string, targetState: State) {
     this._triggerId = triggerId;
     this._targetState = targetState;

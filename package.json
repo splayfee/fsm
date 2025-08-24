@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "2.1.5",
+  "version": "3.0.0",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
@@ -15,27 +15,19 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
+    "coverage": "nyc npm run test",
     "docs": "./node_modules/.bin/typedoc src/index.ts --out docs",
-    "test": "./node_modules/.bin/mocha --timeout 999999 --colors --require ts-node/register tests/**/*.spec.ts",
-    "coverage": "nyc npm run test"
+    "lint": "eslint --fix --stats .",
+    "test:unit": "cross-env NODE_ENV=test jest --coverage --silent",
+    "type-check": "tsc --noEmit"
   },
-  "nyc": {
-    "extension": [
-      ".ts",
-      ".tsx"
-    ],
-    "exclude": [
-      "**/*.d.ts",
-      "**/*.spec.ts"
-    ],
-    "reporter": [
-      "lcov",
-      "text",
-      "text-summary"
-    ]
+  "engines": {
+    "node": ">=22.18.0"
   },
+  "type": "commonjs",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [
     "finite state machine",
@@ -50,25 +42,19 @@
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
   "devDependencies": {
-    "@types/chai": "^4.3.16",
-    "@types/lodash": "^4.17.6",
-    "@types/mocha": "^10.0.7",
-    "@types/node": "^20.14.9",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0",
-    "chai": "^4.3.7",
-    "eslint": "^9.6.0",
-    "istanbul": "^0.4.5",
-    "jsonlint": "^1.6.3",
-    "mocha": "^10.6.0",
-    "nyc": "^17.0.0",
-    "ts-node": "^10.9.2",
-    "typedoc": "^0.23.21",
-    "typescript": "^5.5.3"
-  },
-  "dependencies": {
-    "global": "^4.4.0",
+    "@types/jest": "^30.0.0",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.3.0",
+    "cross-env": "^10.0.0",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.0.5",
     "lodash": "^4.17.21",
-    "tslib": "^2.6.3"
-  }
+    "ts-jest": "^29.4.1",
+    "tsx": "^4.20.5",
+    "typedoc": "^0.28.10",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.40.0"
+  },
+  "dependencies": {}
 }

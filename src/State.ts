@@ -14,7 +14,7 @@ export type TEntryActionFn<TContext = any> = (state: State<TContext>, context?: 
 export type TExitActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => boolean;
 
 /** This class defines a new state for the state machine. */
-export default class State <TContext = any>{
+export default class State<TContext = any> {
   /**
    * Instantiates a new state machine.
    * @param stateMachine The state machine this state is associated with.
@@ -22,14 +22,14 @@ export default class State <TContext = any>{
    * from the state machine. Also used when defining transitions.
    * @param isComplete Optional Flag that indicates whether the state is a completed state.
    */
-  public constructor(stateMachine: StateMachine, name: string, isComplete: boolean = false) {
+  public constructor(stateMachine: StateMachine, name: string, isComplete = false) {
     this._stateMachine = stateMachine;
     this._name = name;
     this._isComplete = isComplete;
   }
 
   /** A collection of transitions that are allowed for this state. */
-  private _transitions: Map<string, Transition> = new Map();
+  private _transitions = new Map<string, Transition>();
 
   /** The state machine this state is associated with. */
   private _stateMachine: StateMachine;
@@ -96,7 +96,7 @@ export default class State <TContext = any>{
    * global transition rather than a state-specific transition. Global transitions
    * can bypass local state transition rules.
    */
-  public trigger(triggerId: string, sendGlobal: boolean = false): void {
+  public trigger(triggerId: string, sendGlobal = false): void {
     this._stateMachine.trigger(triggerId, sendGlobal);
   }
 }
