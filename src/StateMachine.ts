@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * @fileOverview This file holds the StateMachine class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
@@ -144,9 +142,7 @@ export default class StateMachine<TContext = any> {
       this._throwStateMachineError('not started.');
     }
 
-    let transition: Transition | undefined = this._currentState
-      ? this._currentState.getTransition(triggerId)
-      : undefined;
+    let transition: Transition | undefined = this._currentState?.getTransition(triggerId);
 
     // Look for a global state transition
     if (!transition) {

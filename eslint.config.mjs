@@ -18,7 +18,7 @@ export default tseslint.config(
       }
     }
   },
-  { ignores: ['coverage/*', 'dist/*', 'docs/*', 'eslint.config.mjs', 'jest.config.cjs'] },
+  { ignores: ['coverage/*', 'dist/*', 'docs/*', 'eslint.config.mjs', 'vitest.config.ts'] },
   {
     rules: {
       'max-len': [

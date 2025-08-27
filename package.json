@@ -16,9 +16,10 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc --build",
-    "docs": "./node_modules/.bin/typedoc src/index.ts --out docs",
     "lint": "eslint --fix --stats .",
-    "test:unit": "cross-env NODE_ENV=test jest --coverage --silent",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
     "type-check": "tsc --noEmit"
   },
   "engines": {
@@ -41,18 +42,16 @@
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.3.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "cross-env": "^10.0.0",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
-    "jest": "^30.0.5",
     "lodash": "^4.17.21",
-    "ts-jest": "^29.4.1",
     "tsx": "^4.20.5",
-    "typedoc": "^0.28.10",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.40.0"
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
   }
 }

@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * @fileOverview This file holds the State class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
