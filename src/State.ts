@@ -4,7 +4,7 @@
  * @version 2.0.0
  */
 
-import { kebabCase } from 'lodash';
+import kebabCase from 'lodash-es/kebabCase';
 import StateMachine from './StateMachine';
 import Transition from './Transition';
 

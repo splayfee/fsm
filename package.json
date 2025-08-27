@@ -15,7 +15,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist --clean --tsconfig tsconfig.tsup.json",
     "lint": "eslint --fix --stats .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -25,10 +25,26 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "type": "commonjs",
-  "main": "dist/index.js",
+  "type": "module",
+  "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
   "keywords": [
     "finite state machine",
     "fsm",
@@ -42,13 +58,14 @@
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
   "devDependencies": {
-    "@types/lodash": "^4.17.20",
+    "@types/lodash-es": "^4.17.12",
     "@types/node": "^24.3.0",
     "@vitest/coverage-v8": "^3.2.4",
     "cross-env": "^10.0.0",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
+    "tsup": "^8.5.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0",

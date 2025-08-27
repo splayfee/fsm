@@ -3,9 +3,9 @@
     "allowSyntheticDefaultImports": true,
     "declaration": false,
     "esModuleInterop": true,
-    "module": "NodeNext",
-    "target": "ESNext",
-    "moduleResolution": "NodeNext",
+    "module": "esnext",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
     "rootDir": "src",
     "outDir": "dist",
     "noImplicitAny": true,
@@ -15,7 +15,8 @@
     "skipLibCheck": true,
     "sourceMap": false,
     "resolveJsonModule": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": [

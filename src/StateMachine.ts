@@ -6,7 +6,7 @@
 
 import State, { TEntryActionFn, TExitActionFn } from './State';
 import Transition from './Transition';
-import { kebabCase } from 'lodash';
+import kebabCase from 'lodash-es/kebabCase';
 
 /**
  * This class defines a new state machine. The state machine takes in
