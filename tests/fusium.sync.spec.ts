@@ -7,7 +7,7 @@ describe('test states', (): void => {
   it('should throw an error when starting a machine with no states', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
     expect((): void => {
-      (stateMachine as any).start();
+      stateMachine.start();
     }).toThrow(
       'State Machine (my first state machine) - No states have been defined. The state machine cannot be started.'
     );
@@ -15,121 +15,123 @@ describe('test states', (): void => {
 
   it('should throw an error when starting a machine that has already started', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state');
+    const state1: State = stateMachine.createState('my first state');
     expect(state1).toBeDefined();
-    (stateMachine as any).start();
+    stateMachine.start();
     expect((): void => {
-      (stateMachine as any).start();
+      stateMachine.start();
     }).toThrow('State Machine (my first state machine) - The state machine has already started.');
   });
 
   it('should create and add a state manually', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
     const state1: State = new State(stateMachine, 'my first state');
-    (stateMachine as any).addState(state1);
-    const foundState: State | undefined = (stateMachine as any).getStateById(state1.id);
+    stateMachine.addState(state1);
+    const foundState: State | undefined = stateMachine.getStateById(state1.id);
     expect(foundState).toEqual(state1);
   });
 
   it('should create and add a state automatically', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    (stateMachine as any).createState('my first state', true);
-    const foundState: State = (stateMachine as any)._states.values().next().value;
+    stateMachine.createState('my first state', true);
+    const foundState: State | undefined = stateMachine.states.values().next().value;
     expect(foundState).toBeDefined();
-    expect(foundState.name === 'my first state');
-    expect(foundState.isComplete).toEqual(true);
+    expect(foundState!.name === 'my first state');
+    expect(foundState!.isComplete).toEqual(true);
   });
 
   it('should throw a state exists error', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
     const state1: State = new State(stateMachine, 'my first state', false);
     const state2: State = new State(stateMachine, 'my first state', false);
-    (stateMachine as any).addState(state1);
+    stateMachine.addState(state1);
     expect((): void => {
-      (stateMachine as any).addState(state2);
+      stateMachine.addState(state2);
     }).toThrow('State Machine (my first state machine) - State exists: my-first-state.');
   });
 
   it('should have a default start state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).start();
-    expect(state1).toEqual((stateMachine as any).currentState);
+    const state1: State = stateMachine.createState('my first state', false);
+    stateMachine.start();
+    expect(state1).toEqual(stateMachine.currentState);
   });
 
   it('should start with an explicit start state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    (stateMachine as any).createState('my first state', false);
-    const state2: State = (stateMachine as any).createState('my second state', false);
-    (stateMachine as any).start(state2);
-    expect(state2).toEqual((stateMachine as any).currentState);
+    stateMachine.createState('my first state', false);
+    const state2: State = stateMachine.createState('my second state', false);
+    stateMachine.start(state2);
+    expect(state2).toEqual(stateMachine.currentState);
   });
 
   it('should transition from current state to previous state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
+    const state1: State = stateMachine.createState('my first state', false);
     state1.entryAction = (state: State): void => {
       state.trigger('next', false);
     };
-    const state2: State = (stateMachine as any).createState('my second state', false);
+    const state2: State = stateMachine.createState('my second state', false);
     state1.addTransition('next', state2);
-    (stateMachine as any).start(state1);
-    expect((stateMachine as any)._currentState).toEqual(state2);
-    expect((stateMachine as any)._previousState).toEqual(state1);
+    stateMachine.start(state1);
+    // @ts-expect-error Allow private access for testing
+    expect(stateMachine._currentState).toEqual(state2);
+    // @ts-expect-error private access for testing
+    expect(stateMachine._previousState).toEqual(state1);
   });
 
   it('should return the state machine name', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    expect((stateMachine as any).name).toEqual('my first state machine');
+    expect(stateMachine.name).toEqual('my first state machine');
   });
 
   it('should return the state machine id', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    expect((stateMachine as any).id).toEqual('my-first-state-machine');
+    expect(stateMachine.id).toEqual('my-first-state-machine');
   });
 
   it('should start with the first state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).start(state1);
-    expect((stateMachine as any).started).toEqual(true);
-    expect((stateMachine as any)._currentState).toEqual(state1);
+    const state1: State = stateMachine.createState('my first state', false);
+    stateMachine.start(state1);
+    expect(stateMachine.started).toEqual(true);
+    expect(stateMachine.currentState).toEqual(state1);
   });
 
   it('Should reset the state then restart it', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).start(state1);
-    (stateMachine as any).reset(true);
-    expect((stateMachine as any)._currentState).toEqual(state1);
-    expect((stateMachine as any)._previousState).toEqual(undefined);
+    const state1: State = stateMachine.createState('my first state', false);
+    stateMachine.start(state1);
+    stateMachine.reset(true);
+    expect(stateMachine.currentState).toEqual(state1);
+    expect(stateMachine.previousState).toEqual(undefined);
   });
 
   it('Should reset the state but not restart it', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
+    const state1: State = stateMachine.createState('my first state', false);
     state1.entryAction = (state: State): void => {
       state.trigger('next');
     };
-    const state2: State = (stateMachine as any).createState('my second state', false);
+    const state2: State = stateMachine.createState('my second state', false);
     state1.addTransition('next', state2);
-    (stateMachine as any).start(state1);
-    (stateMachine as any).reset();
-    expect((stateMachine as any)._currentState).toEqual(undefined);
-    expect((stateMachine as any)._previousState).toEqual(undefined);
+    stateMachine.start(state1);
+    stateMachine.reset();
+    expect(stateMachine.currentState).toEqual(undefined);
+    expect(stateMachine.previousState).toEqual(undefined);
   });
 
   it('Should block exit from the current state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
+    const state1: State = stateMachine.createState('my first state', false);
     state1.exitAction = (): boolean => {
       return false;
     };
-    const state2: State = (stateMachine as any).createState('my second state', false);
+    const state2: State = stateMachine.createState('my second state', false);
     state1.addTransition('next', state2);
-    (stateMachine as any).start(state1);
+    stateMachine.start(state1);
     state1.trigger('next');
-    expect((stateMachine as any)._currentState).toEqual(state1);
+    expect(stateMachine.currentState).toEqual(state1);
   });
 
   it('Should attach entry and exit actions from the constructor', (): void => {
@@ -143,18 +145,18 @@ describe('test states', (): void => {
     };
 
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState(
+    const state1: State = stateMachine.createState(
       'my first state',
       false,
       entryAction,
       exitAction
     );
-    const state2: State = (stateMachine as any).createState('my second state', false);
+    const state2: State = stateMachine.createState('my second state', false);
     state1.addTransition('next', state2);
-    (stateMachine as any).start(state1);
+    stateMachine.start(state1);
 
     state1.trigger('next');
-    expect((stateMachine as any)._currentState).toEqual(state2);
+    expect(stateMachine.currentState).toEqual(state2);
     expect(counter).toEqual(2);
   });
 });
@@ -162,21 +164,21 @@ describe('test states', (): void => {
 describe('test global state transition', (): void => {
   it('should transition to a global state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).createState('my second state', false);
-    const state3: State = (stateMachine as any).createState('my third state', false);
-    (stateMachine as any).addGlobalTransition('gotoThree', state3);
-    (stateMachine as any).start();
-    (stateMachine as any).trigger('gotoThree', true);
-    expect((stateMachine as any).started).toEqual(true);
-    expect((stateMachine as any)._currentState).toEqual(state3);
+    stateMachine.createState('my first state', false);
+    stateMachine.createState('my second state', false);
+    const state3: State = stateMachine.createState('my third state', false);
+    stateMachine.addGlobalTransition('gotoThree', state3);
+    stateMachine.start();
+    stateMachine.trigger('gotoThree', true);
+    expect(stateMachine.started).toEqual(true);
+    expect(stateMachine.currentState).toEqual(state3);
   });
 });
 
 describe('test transition', (): void => {
   it('should create a new transition', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const state1: State = (stateMachine as any).createState('my first state', false);
+    const state1: State = stateMachine.createState('my first state', false);
     const transition: Transition = new Transition('next', state1);
     expect(transition).toBeDefined();
     expect(transition.triggerId).toEqual('next');
@@ -187,12 +189,12 @@ describe('test transition', (): void => {
 describe('test the state machine', (): void => {
   it('should be in completed state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const s1: State = (stateMachine as any).createState('my first state', false);
-    const s2: State = (stateMachine as any).createState('my second state', true);
+    const s1: State = stateMachine.createState('my first state', false);
+    const s2: State = stateMachine.createState('my second state', true);
     s1.addTransition('next', s2);
-    (stateMachine as any).start();
-    (stateMachine as any).trigger('next');
-    expect((stateMachine as any).isComplete).toEqual(true);
+    stateMachine.start();
+    stateMachine.trigger('next');
+    expect(stateMachine.isComplete).toEqual(true);
   });
 
   it('should provide context to all actions', (): void => {
@@ -220,25 +222,20 @@ describe('test the state machine', (): void => {
       'my first state machine',
       context
     );
-    const s1: State = (stateMachine as any).createState(
-      'my first state',
-      false,
-      entryAction,
-      exitAction
-    );
-    const s2: State = (stateMachine as any).createState('my second state', true);
+    const s1: State = stateMachine.createState('my first state', false, entryAction, exitAction);
+    const s2: State = stateMachine.createState('my second state', true);
     s1.addTransition('next', s2);
-    (stateMachine as any).start();
-    (stateMachine as any).trigger('next');
+    stateMachine.start();
+    stateMachine.trigger('next');
   });
 
   it('should get a state by its id', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).createState('my second state', true);
-    const s3: State = (stateMachine as any).createState('my third state', true);
-    (stateMachine as any).createState('my fourth state', true);
-    expect((stateMachine as any).getStateById('my third state')).toEqual(s3);
+    stateMachine.createState('my first state', false);
+    stateMachine.createState('my second state', true);
+    const s3: State = stateMachine.createState('my third state', true);
+    stateMachine.createState('my fourth state', true);
+    expect(stateMachine.getStateById('my third state')).toEqual(s3);
   });
   it('should throw an error if the state machine is already in the requested state', (): void => {
     const entryAction = (state: State): void => {
@@ -246,11 +243,11 @@ describe('test the state machine', (): void => {
     };
 
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const s1: State = (stateMachine as any).createState('my first state', false);
+    const s1: State = stateMachine.createState('my first state', false);
     s1.entryAction = entryAction;
     s1.addTransition('next', s1);
     expect((): void => {
-      (stateMachine as any).start();
+      stateMachine.start();
     }).toThrow(
       'State Machine (my first state machine) - Already in state: currentState: my first state.'
     );
@@ -262,13 +259,13 @@ describe('test the state machine', (): void => {
     };
 
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const s1: State = (stateMachine as any).createState('my first state', false, entryAction);
-    const s2: State = (stateMachine as any).createState('my second state', false, entryAction);
-    const s3: State = (stateMachine as any).createState('my third state', false, entryAction);
+    const s1: State = stateMachine.createState('my first state', false, entryAction);
+    const s2: State = stateMachine.createState('my second state', false, entryAction);
+    const s3: State = stateMachine.createState('my third state', false, entryAction);
     s1.addTransition('next', s2);
     s2.addTransition('other', s3);
     expect((): void => {
-      (stateMachine as any).start(s1);
+      stateMachine.start(s1);
       s3.trigger('other');
     }).toThrow(
       'State Machine (my first state machine) - Invalid Transition - triggerId: my-first-state:other.'
@@ -277,25 +274,25 @@ describe('test the state machine', (): void => {
 
   it('should go to the previous state', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const s1: State = (stateMachine as any).createState('my first state', false);
-    const s2: State = (stateMachine as any).createState('my second state', false);
+    const s1: State = stateMachine.createState('my first state', false);
+    const s2: State = stateMachine.createState('my second state', false);
     s1.addTransition('next', s2);
-    (stateMachine as any).start();
-    (stateMachine as any).trigger('next');
-    expect((stateMachine as any)._currentState).toEqual(s2);
-    expect((stateMachine as any)._previousState).toEqual(s1);
-    (stateMachine as any).gotoPrevious();
-    expect((stateMachine as any)._currentState).toEqual(s1);
-    expect((stateMachine as any)._previousState).toEqual(s2);
+    stateMachine.start();
+    stateMachine.trigger('next');
+    expect(stateMachine.currentState).toEqual(s2);
+    expect(stateMachine.previousState).toEqual(s1);
+    stateMachine.gotoPrevious();
+    expect(stateMachine.currentState).toEqual(s1);
+    expect(stateMachine.previousState).toEqual(s2);
   });
 
   it('should not error if you attempt to go to a previous state that does bot exist', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).start();
+    stateMachine.createState('my first state', false);
+    stateMachine.start();
 
     expect((): void => {
-      (stateMachine as any).gotoPrevious();
+      stateMachine.gotoPrevious();
     }).not.toThrow();
   });
 
@@ -305,11 +302,11 @@ describe('test the state machine', (): void => {
     };
 
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const s1: State = (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).createState('my second state', false);
+    const s1: State = stateMachine.createState('my first state', false);
+    stateMachine.createState('my second state', false);
     s1.entryAction = entryAction;
     expect((): void => {
-      (stateMachine as any).start();
+      stateMachine.start();
     }).toThrow(
       'State Machine (my first state machine) - Invalid Transition - triggerId: my-first-state:next.'
     );
@@ -321,8 +318,8 @@ describe('test the state machine', (): void => {
     };
 
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    const s1: State = (stateMachine as any).createState('my first state', false);
-    (stateMachine as any).createState('my second state', false);
+    const s1: State = stateMachine.createState('my first state', false);
+    stateMachine.createState('my second state', false);
     s1.entryAction = entryAction;
     expect((): void => {
       s1.trigger('next', false);
@@ -331,7 +328,7 @@ describe('test the state machine', (): void => {
 
   it('should not be complete if the state machine has not started', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
-    expect((stateMachine as any).isComplete).toEqual(false);
+    expect(stateMachine.isComplete).toEqual(false);
   });
 
   it('should run a simple state machine', (): Promise<void> => {
@@ -388,11 +385,11 @@ describe('test the state machine', (): void => {
       };
 
       const stateMachine: StateMachine = new StateMachine('my first state machine');
-      const s1: State = (stateMachine as any).createState('my first state', false);
-      const s2: State = (stateMachine as any).createState('my second state', false);
-      const s3: State = (stateMachine as any).createState('my third state', false);
-      const s4: State = (stateMachine as any).createState('my fourth state', false);
-      const s5: State = (stateMachine as any).createState('my final state', true);
+      const s1: State = stateMachine.createState('my first state', false);
+      const s2: State = stateMachine.createState('my second state', false);
+      const s3: State = stateMachine.createState('my third state', false);
+      const s4: State = stateMachine.createState('my fourth state', false);
+      const s5: State = stateMachine.createState('my final state', true);
 
       s1.entryAction = entryAction;
       s1.exitAction = exitAction;
@@ -410,7 +407,7 @@ describe('test the state machine', (): void => {
       s3.addTransition('next', s5);
       s4.addTransition('next', s5);
 
-      (stateMachine as any).start(s1);
+      stateMachine.start(s1);
     });
   });
 
@@ -436,12 +433,12 @@ describe('test the state machine', (): void => {
       onEntry,
       onExit
     );
-    const s1: State = (stateMachine as any).createState(STATE1_NAME, false);
-    const s2: State = (stateMachine as any).createState(STATE2_NAME, false);
+    const s1: State = stateMachine.createState(STATE1_NAME, false);
+    const s2: State = stateMachine.createState(STATE2_NAME, false);
     s1.addTransition('goTwo', s2);
 
-    (stateMachine as any).start(s1);
-    (stateMachine as any).trigger('goTwo');
+    stateMachine.start(s1);
+    stateMachine.trigger('goTwo');
 
     expect(entryCount).toEqual(2);
     expect(exitCount).toEqual(1);

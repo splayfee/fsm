@@ -1,18 +1,24 @@
 /**
- * @fileOverview This file holds the State class definition.
+ * @fileOverview This file holds the AsyncState class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  * @version 2.0.0
  */
 
 import kebabCase from 'lodash-es/kebabCase';
-import StateMachine from './StateMachine';
-import Transition from './Transition';
+import AsyncStateMachine from './AsyncStateMachine';
+import AsyncTransition from './AsyncTransition';
 
-export type TEntryActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => void;
-export type TExitActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => boolean;
+export type TEntryActionFn<TContext = any> = (
+  state: AsyncState<TContext>,
+  context?: TContext
+) => Promise<void>;
+export type TExitActionFn<TContext = any> = (
+  state: AsyncState<TContext>,
+  context?: TContext
+) => Promise<boolean>;
 
 /** This class defines a new state for the state machine. */
-export default class State<TContext = any> {
+export default class AsyncState<TContext = any> {
   /**
    * Instantiates a new state machine.
    * @param stateMachine The state machine this state is associated with.
@@ -20,17 +26,17 @@ export default class State<TContext = any> {
    * from the state machine. Also used when defining transitions.
    * @param isComplete Optional Flag that indicates whether the state is a completed state.
    */
-  public constructor(stateMachine: StateMachine, name: string, isComplete = false) {
+  public constructor(stateMachine: AsyncStateMachine, name: string, isComplete = false) {
     this._stateMachine = stateMachine;
     this._name = name;
     this._isComplete = isComplete;
   }
 
   /** A collection of transitions that are allowed for this state. */
-  private _transitions = new Map<string, Transition>();
+  private _transitions = new Map<string, AsyncTransition>();
 
   /** The state machine this state is associated with. */
-  private _stateMachine: StateMachine;
+  private _stateMachine: AsyncStateMachine;
 
   private _name: string;
   /**
@@ -77,13 +83,13 @@ export default class State<TContext = any> {
    * @param triggerId The associated unique identifier used to trigger this transition.
    * @param targetState The target state to enter upon transition.
    */
-  public addTransition(triggerId: string, targetState: State): void {
+  public addTransition(triggerId: string, targetState: AsyncState): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
-    this._transitions.set(localTriggerId, new Transition(localTriggerId, targetState));
+    this._transitions.set(localTriggerId, new AsyncTransition(localTriggerId, targetState));
   }
 
   /** Returns the transition relating to the trigger specified. */
-  public getTransition(triggerId: string): Transition | undefined {
+  public getTransition(triggerId: string): AsyncTransition | undefined {
     return this._transitions.get(triggerId);
   }
 
@@ -94,7 +100,8 @@ export default class State<TContext = any> {
    * global transition rather than a state-specific transition. Global transitions
    * can bypass local state transition rules.
    */
-  public trigger(triggerId: string, sendGlobal = false): void {
-    this._stateMachine.trigger(triggerId, sendGlobal);
+
+  public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
+    return this._stateMachine.trigger(triggerId, sendGlobal);
   }
 }
