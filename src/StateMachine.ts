@@ -187,7 +187,6 @@ export default class StateMachine<TContext = any> {
    * @param targetState The target state.
    */
   public addGlobalTransition(triggerId: string, targetState: State): void {
-    console.log('triggerId: ', kebabCase(triggerId));
     this._transitions.set(kebabCase(triggerId), new Transition(triggerId, targetState));
   }
 

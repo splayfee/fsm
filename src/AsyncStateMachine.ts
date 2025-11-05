@@ -15,6 +15,8 @@ import kebabCase from 'lodash-es/kebabCase';
  * multiple state machines.
  */
 export default class AsyncStateMachine<TContext = any> {
+  private _queue: Promise<void> = Promise.resolve();
+
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
@@ -118,8 +120,6 @@ export default class AsyncStateMachine<TContext = any> {
   private async _changeState(newState: AsyncState): Promise<void> {
     let allowExit = true;
 
-    console.info('changing state to: ', newState.name);
-
     // Throw an error if the machine is already in the requested state.
     if (newState === this._currentState) {
       this._throwStateMachineError(`Already in state: currentState: ${this._currentState.name}.`);
@@ -128,15 +128,11 @@ export default class AsyncStateMachine<TContext = any> {
     // Perform an exit action if it exists and record whether to allow the state change.
     if (this._currentState?.exitAction) {
       allowExit = await this._currentState.exitAction(this._currentState, this._context);
-      console.info('local exit action allowed? ', allowExit);
     }
 
     if (this._currentState && this._exitAction) {
       allowExit = await this._exitAction(this._currentState, this._context);
-      console.info('global exit action allowed? ', allowExit);
     }
-
-    console.info('allowExit? ', allowExit);
 
     // The current state can cancel the state change request if necessary.
     if (allowExit) {
@@ -145,14 +141,10 @@ export default class AsyncStateMachine<TContext = any> {
 
       // Perform any entrance action if it exists
       if (this._currentState?.entryAction) {
-        console.info('local entryAction started');
         await this._currentState.entryAction(newState, this._context);
-        console.info('local entryAction completed');
       }
       if (this._entryAction) {
-        console.info('global entryAction completed');
         await this._entryAction(newState, this._context);
-        console.info('global entryAction completed');
       }
     }
   }
@@ -162,7 +154,6 @@ export default class AsyncStateMachine<TContext = any> {
    * @param triggerId A unique identifier for the trigger.
    */
   private async _transitionHandler(triggerId: string): Promise<void> {
-    console.info('transition start: ', triggerId);
     if (!this.started) {
       this._throwStateMachineError('not started.');
     }
@@ -177,7 +168,6 @@ export default class AsyncStateMachine<TContext = any> {
     if (!transition) {
       this._throwStateMachineError(`Invalid Transition - triggerId: ${triggerId}.`);
     } else {
-      console.info('transition found: ', transition.targetState.name);
       return this._changeState(transition.targetState);
     }
   }
@@ -201,7 +191,6 @@ export default class AsyncStateMachine<TContext = any> {
    * @param targetState The target state.
    */
   public addGlobalTransition(triggerId: string, targetState: AsyncState): void {
-    console.log('triggerId: ', kebabCase(triggerId));
     this._transitions.set(kebabCase(triggerId), new Transition(triggerId, targetState));
   }
 
@@ -281,19 +270,16 @@ export default class AsyncStateMachine<TContext = any> {
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Tells the system to send a global transition rather than a state-specific transition.
    */
-  public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
-    if (this._isTransitioning) {
-      this._throwStateMachineError(
-        `Transition from state "${this.currentState?.name}" in progress, cannot start a new transition (${triggerId}) until the previous transition is complete.`
-      );
-      return;
-    }
 
-    this._isTransitioning = true;
-    if (!sendGlobal && this._currentState) {
-      triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
+  public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
+    try {
+      await this._queue;
+      if (!sendGlobal && this._currentState) {
+        triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
+      }
+      return this._transitionHandler(triggerId);
+    } catch (error) {
+      this._queue = Promise.reject(error as Error);
     }
-    await this._transitionHandler(triggerId);
-    this._isTransitioning = false;
   }
 }

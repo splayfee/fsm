@@ -12,7 +12,7 @@ function _timeout(timeout = 100): Promise<void> {
 
 describe('test states', () => {
   beforeEach(() => {
-    vi.useRealTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
@@ -149,8 +149,6 @@ describe('test states', () => {
   });
 
   it('Should block exit from the current state', async () => {
-    vi.useFakeTimers();
-
     const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
     const state1: AsyncState = stateMachine.createState('my first state', false);
     const state2: AsyncState = stateMachine.createState('my second state', false);
