@@ -17,9 +17,8 @@
   "scripts": {
     "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist --clean --tsconfig tsconfig.tsup.json",
     "lint": "eslint --fix --stats .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:cov": "vitest run --coverage",
     "type-check": "tsc --noEmit"
   },
   "engines": {

@@ -9,14 +9,7 @@ export default defineConfig({
       reportsDirectory: 'coverage',
       reporter: ['text', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/defaults.d.ts',
-        'src/enums/**',
-        'src/index.ts',
-        'src/jobs/index.ts',
-        'src/interfaces/**',
-        'src/types/**'
-      ],
+      exclude: ['src/index.ts'],
       thresholds: {
         branches: 80,
         functions: 80,
