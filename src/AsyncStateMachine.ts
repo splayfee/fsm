@@ -148,10 +148,6 @@ export default class AsyncStateMachine<TContext = unknown> {
    * @param triggerId A unique identifier for the trigger.
    */
   private async _transitionHandler(triggerId: string): Promise<void> {
-    if (!this.started) {
-      this.throwError('Not started. Call start() before trigger().');
-    }
-
     let transition: AsyncTransition | undefined = this._currentState?.getTransition(triggerId);
 
     // Look for a global state transition
@@ -174,6 +170,9 @@ export default class AsyncStateMachine<TContext = unknown> {
     if (this._states.has(state.id)) {
       this.throwError(`State exists: ${state.id}.`, state.name);
     }
+    if (this.started) {
+      this.throwError('Cannot add a state once the machine has started.');
+    }
     this._states.set(state.id, state);
   }
 
@@ -185,6 +184,9 @@ export default class AsyncStateMachine<TContext = unknown> {
    * @param targetState The target state.
    */
   public addGlobalTransition(triggerId: string, targetState: AsyncState): void {
+    if (this.started) {
+      this.throwError('Cannot add a transition once the machine has started.');
+    }
     this._transitions.set(kebabCase(triggerId), new AsyncTransition(triggerId, targetState));
   }
 
@@ -281,6 +283,13 @@ export default class AsyncStateMachine<TContext = unknown> {
    */
 
   public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
+    if (!this.started) {
+      this.throwError('Cannot trigger if the machine has not started.', triggerId);
+    }
+    if (this.isComplete) {
+      this.throwError('Cannot trigger if the machine has completed.', triggerId);
+    }
+
     try {
       await this._queue;
       if (!sendGlobal && this._currentState) {

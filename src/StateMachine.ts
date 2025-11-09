@@ -146,10 +146,6 @@ export default class StateMachine<TContext = unknown> {
    * @param triggerId A unique identifier for the trigger.
    */
   private _transitionHandler(triggerId: string): void {
-    if (!this.started) {
-      this.throwError('Not started. Call start() before trigger().');
-    }
-
     let transition: Transition | undefined = this._currentState?.getTransition(triggerId);
 
     // Look for a global state transition
@@ -172,6 +168,9 @@ export default class StateMachine<TContext = unknown> {
     if (this._states.has(state.id)) {
       this.throwError(`State exists: ${state.id}.`, state.name);
     }
+    if (this.started) {
+      this.throwError('Cannot add a state once the machine has started.');
+    }
     this._states.set(state.id, state);
   }
 
@@ -183,6 +182,9 @@ export default class StateMachine<TContext = unknown> {
    * @param targetState The target state.
    */
   public addGlobalTransition(triggerId: string, targetState: State): void {
+    if (this.started) {
+      this.throwError('Cannot add a transition once the machine has started.');
+    }
     this._transitions.set(kebabCase(triggerId), new Transition(triggerId, targetState));
   }
 
@@ -277,6 +279,13 @@ export default class StateMachine<TContext = unknown> {
    * @param [sendGlobal] Tells the system to send a global transition rather than a state-specific transition.
    */
   public trigger(triggerId: string, sendGlobal = false): void {
+    if (!this.started) {
+      this.throwError('Cannot trigger if the machine has not started.', undefined, triggerId);
+    }
+    if (this.isComplete) {
+      this.throwError('Cannot trigger if the machine has completed.', triggerId);
+    }
+
     if (!sendGlobal && this._currentState) {
       triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
     }

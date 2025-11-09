@@ -329,7 +329,7 @@ describe('test the state machine', (): void => {
     expect((): void => {
       s1.trigger('next', false);
     }).toThrow(
-      'State Machine (my first state machine) - Not started. Call start() before trigger().'
+      'State Machine (my first state machine) - Cannot trigger if the machine has not started.'
     );
   });
 
