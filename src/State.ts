@@ -86,7 +86,11 @@ export default class State<TContext = any> {
   public addTransition(triggerId: string, targetState: State): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
     if (this._transitions.has(localTriggerId)) {
-      this._stateMachine.throwStateMachineError?.(`Transition exists: ${localTriggerId}.`);
+      this._stateMachine.throwError(
+        `Transition exists: ${localTriggerId}.`,
+        this.name,
+        localTriggerId
+      );
     }
     this._transitions.set(localTriggerId, new Transition(localTriggerId, targetState));
   }

@@ -5,6 +5,7 @@
  */
 
 import State, { TEntryActionFn, TExitActionFn } from './State';
+import StateMachineError from './StateMachineError';
 import Transition from './Transition';
 import kebabCase from 'lodash-es/kebabCase';
 
@@ -110,7 +111,10 @@ export default class StateMachine<TContext = unknown> {
 
     // Throw an error if the machine is already in the requested state.
     if (newState === this._currentState) {
-      this.throwStateMachineError(`Already in state: currentState: ${this._currentState.name}.`);
+      this.throwError(
+        `Already in state: currentState: ${this._currentState.name}.`,
+        this._currentState.name
+      );
     }
 
     // Perform an exit action if it exists and record whether to allow the state change.
@@ -143,7 +147,7 @@ export default class StateMachine<TContext = unknown> {
    */
   private _transitionHandler(triggerId: string): void {
     if (!this.started) {
-      this.throwStateMachineError('Not started. Call start() before trigger().');
+      this.throwError('Not started. Call start() before trigger().');
     }
 
     let transition: Transition | undefined = this._currentState?.getTransition(triggerId);
@@ -154,7 +158,7 @@ export default class StateMachine<TContext = unknown> {
     }
 
     if (!transition) {
-      this.throwStateMachineError(`Invalid Transition - triggerId: ${triggerId}.`);
+      this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, undefined, triggerId);
     } else {
       this._changeState(transition.targetState);
     }
@@ -166,7 +170,7 @@ export default class StateMachine<TContext = unknown> {
    */
   public addState(state: State): void {
     if (this._states.has(state.id)) {
-      this.throwStateMachineError(`State exists: ${state.id}.`);
+      this.throwError(`State exists: ${state.id}.`, state.name);
     }
     this._states.set(state.id, state);
   }
@@ -227,19 +231,20 @@ export default class StateMachine<TContext = unknown> {
   public start(startState: State = this._states.values().next().value): void {
     // Don't restart the machine if it's already started
     if (this._currentState) {
-      this.throwStateMachineError('The state machine has already started.');
+      this.throwError('The state machine has already started.');
     }
 
     // If the startState is missing.
     if (startState && !this._states.has(startState.id)) {
-      this.throwStateMachineError(`Start state (${startState.name}) is not part of this machine.`);
+      this.throwError(
+        `Start state (${startState.name}) is not part of this machine.`,
+        startState.name
+      );
     }
 
     // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
-      this.throwStateMachineError(
-        'No states have been defined. The state machine cannot be started.'
-      );
+      this.throwError('No states have been defined. The state machine cannot be started.');
     }
 
     this._startState = startState;
@@ -262,8 +267,8 @@ export default class StateMachine<TContext = unknown> {
    * This method throws an error with state machine details prefixed to the message.
    * @param message The message to be prefixed.
    */
-  public throwStateMachineError(message: string): string {
-    throw new Error(`State Machine (${this._name}) - ${message}`);
+  public throwError(message: string, state?: string, trigger?: string): void {
+    throw new StateMachineError(this._name, message, state, trigger);
   }
 
   /**

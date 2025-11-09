@@ -86,7 +86,11 @@ export default class AsyncState<TContext = any> {
   public addTransition(triggerId: string, targetState: AsyncState): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
     if (this._transitions.has(localTriggerId)) {
-      this._stateMachine.throwStateMachineError?.(`Transition exists: ${localTriggerId}.`);
+      this._stateMachine.throwError(
+        `Transition exists: ${localTriggerId}.`,
+        this.name,
+        localTriggerId
+      );
     }
     this._transitions.set(localTriggerId, new AsyncTransition(localTriggerId, targetState));
   }
