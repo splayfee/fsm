@@ -5,7 +5,7 @@
  */
 
 import AsyncState, { TEntryActionFn, TExitActionFn } from './AsyncState';
-import Transition from './AsyncTransition';
+import AsyncTransition from './AsyncTransition';
 import kebabCase from 'lodash-es/kebabCase';
 
 /**
@@ -44,10 +44,10 @@ export default class AsyncStateMachine<TContext = unknown> {
   private _context?: TContext;
 
   /** A collection of all possible global machine transitions between states. */
-  private _transitions = new Map<string, Transition>();
+  private _transitions = new Map<string, AsyncTransition>();
 
   /** A collection of all possible states for this state machine. */
-  private _states = new Map<string, AsyncState>();
+  private _states = new Map<string, AsyncState<TContext>>();
 
   /** The state that should be entered when the machine is first started. */
   private _startState?: AsyncState<TContext> = undefined;
@@ -95,7 +95,7 @@ export default class AsyncStateMachine<TContext = unknown> {
   /**
    * Returns states registered with this state machine.
    */
-  public get states(): Map<string, AsyncState<TContext>> {
+  public get states(): ReadonlyMap<string, AsyncState<TContext>> {
     return this._states;
   }
 
@@ -153,10 +153,10 @@ export default class AsyncStateMachine<TContext = unknown> {
    */
   private async _transitionHandler(triggerId: string): Promise<void> {
     if (!this.started) {
-      this._throwStateMachineError('not started.');
+      this._throwStateMachineError('Not started. Call start() before trigger().');
     }
 
-    let transition: Transition | undefined = this._currentState?.getTransition(triggerId);
+    let transition: AsyncTransition | undefined = this._currentState?.getTransition(triggerId);
 
     // Look for a global state transition
     if (!transition) {
@@ -189,24 +189,24 @@ export default class AsyncStateMachine<TContext = unknown> {
    * @param targetState The target state.
    */
   public addGlobalTransition(triggerId: string, targetState: AsyncState): void {
-    this._transitions.set(kebabCase(triggerId), new Transition(triggerId, targetState));
+    this._transitions.set(kebabCase(triggerId), new AsyncTransition(triggerId, targetState));
   }
 
   /**
    * This method provides a convenient way to create a new state and automatically add it to this state machine. States can be created and added manually as well.
-   * @param id A unique identifier for the new state.
+   * @param name A unique name for the new state.
    * @param [isComplete] Boolean that indicates whether the state is a completed state.
    * @param [entryAction] An optional action that fires whenever the state machine enters this state.
    * @param [exitAction] An optional action that fires whenever the state machine exits this state.
    * @returns The newly created state.
    */
   public createState(
-    id: string,
+    name: string,
     isComplete = false,
     entryAction?: TEntryActionFn<TContext>,
     exitAction?: TExitActionFn<TContext>
   ): AsyncState<TContext> {
-    const state = new AsyncState(this, id, isComplete);
+    const state = new AsyncState(this, name, isComplete);
     state.entryAction = entryAction;
     state.exitAction = exitAction;
     this.addState(state);
@@ -240,6 +240,11 @@ export default class AsyncStateMachine<TContext = unknown> {
       this._throwStateMachineError('The state machine has already started.');
     }
 
+    // If the startState is missing.
+    if (startState && !this._states.has(startState.id)) {
+      this._throwStateMachineError(`Start state (${startState.name}) is not part of this machine.`);
+    }
+
     // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
       this._throwStateMachineError(
@@ -258,6 +263,7 @@ export default class AsyncStateMachine<TContext = unknown> {
   public async reset(restart = false): Promise<void> {
     this._previousState = undefined;
     this._currentState = undefined;
+    this._queue = Promise.resolve();
     if (restart) {
       await this.start(this._startState);
     }

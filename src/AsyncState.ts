@@ -20,7 +20,7 @@ export type TExitActionFn<TContext = unknown> = (
 /** This class defines a new state for the state machine. */
 export default class AsyncState<TContext = unknown> {
   /**
-   * Instantiates a new state machine.
+   * Instantiates a new state.
    * @param stateMachine The state machine this state is associated with.
    * @param name A descriptive name for the state. Can be used to retrieve the state
    * from the state machine. Also used when defining transitions.
@@ -85,6 +85,9 @@ export default class AsyncState<TContext = unknown> {
    */
   public addTransition(triggerId: string, targetState: AsyncState): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
+    if (this._transitions.has(localTriggerId)) {
+      this._stateMachine._throwStateMachineError?.(`Transition exists: ${localTriggerId}.`);
+    }
     this._transitions.set(localTriggerId, new AsyncTransition(localTriggerId, targetState));
   }
 

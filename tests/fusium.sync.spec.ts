@@ -323,7 +323,9 @@ describe('test the state machine', (): void => {
     s1.entryAction = entryAction;
     expect((): void => {
       s1.trigger('next', false);
-    }).toThrow('State Machine (my first state machine) - not started.');
+    }).toThrow(
+      'State Machine (my first state machine) - Not started. Call start() before trigger().'
+    );
   });
 
   it('should not be complete if the state machine has not started', (): void => {

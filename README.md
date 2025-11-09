@@ -18,7 +18,7 @@ The latest version adds a separate **asynchronous state machine** which can be u
 - Start on any state.
 - Reset the state machine with optional restart.
 - Unlimited local transitions.
-- Unlimited global transtions/triggers that bypass the current state's transition rules.
+- Unlimited global transitions/triggers that bypass the current state's transition rules.
 - State changes occur via triggers.
 - When creating the machine, optionally send in a context which is sent to all state actions.
 - Optional **Asynchronous State Machine** in addition to the previous synchronous machine.
@@ -26,13 +26,7 @@ The latest version adds a separate **asynchronous state machine** which can be u
 ## Installation
 
 ```bash
-    $ npm install @edium/fsm
-```
-
-or
-
-```bash
-    $ yarn install @edium/fsm
+    $ pnpm install @edium/fsm
 ```
 
 ## Tests/Coverage
@@ -40,13 +34,7 @@ or
 The code is fully unit tested with near 100% test coverage. Additonally, all code has been linted and type-checked.
 
 ```bash
-  $ npm run test
-```
-
-or
-
-```bash
-  $ yarn run test
+  $ pnpm run test
 ```
 
 ## Examples

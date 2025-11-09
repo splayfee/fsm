@@ -381,7 +381,7 @@ describe('test the state machine', () => {
     s1.entryAction = entryAction;
 
     await expect(s1.trigger('next', false)).rejects.toThrow(
-      'State Machine (my first state machine) - not started.'
+      'State Machine (my first state machine) - Not started. Call start() before trigger().'
     );
   });
 

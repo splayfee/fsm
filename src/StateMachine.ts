@@ -45,7 +45,7 @@ export default class StateMachine<TContext = unknown> {
   private _transitions = new Map<string, Transition>();
 
   /** A collection of all possible states for this state machine. */
-  private _states = new Map<string, State>();
+  private _states = new Map<string, State<TContext>>();
 
   /** The state that should be entered when the machine is first started. */
   private _startState?: State<TContext> = undefined;
@@ -93,7 +93,7 @@ export default class StateMachine<TContext = unknown> {
   /**
    * Returns states registered with this state machine.
    */
-  public get states(): Map<string, State<TContext>> {
+  public get states(): ReadonlyMap<string, State<TContext>> {
     return this._states;
   }
 
@@ -151,7 +151,7 @@ export default class StateMachine<TContext = unknown> {
    */
   private _transitionHandler(triggerId: string): void {
     if (!this.started) {
-      this._throwStateMachineError('not started.');
+      this._throwStateMachineError('Not started. Call start() before trigger().');
     }
 
     let transition: Transition | undefined = this._currentState?.getTransition(triggerId);
@@ -192,19 +192,19 @@ export default class StateMachine<TContext = unknown> {
 
   /**
    * This method provides a convenient way to create a new state and automatically add it to this state machine. States can be created and added manually as well.
-   * @param id A unique identifier for the new state.
+   * @param name A unique name for the new state.
    * @param [isComplete] Boolean that indicates whether the state is a completed state.
    * @param [entryAction] An optional action that fires whenever the state machine enters this state.
    * @param [exitAction] An optional action that fires whenever the state machine exits this state.
    * @returns The newly created state.
    */
   public createState(
-    id: string,
+    name: string,
     isComplete = false,
     entryAction?: TEntryActionFn<TContext>,
     exitAction?: TExitActionFn<TContext>
   ): State<TContext> {
-    const state = new State(this, id, isComplete);
+    const state = new State(this, name, isComplete);
     state.entryAction = entryAction;
     state.exitAction = exitAction;
     this.addState(state);
@@ -236,6 +236,11 @@ export default class StateMachine<TContext = unknown> {
     // Don't restart the machine if it's already started
     if (this._currentState) {
       this._throwStateMachineError('The state machine has already started.');
+    }
+
+    // If the startState is missing.
+    if (startState && !this._states.has(startState.id)) {
+      this._throwStateMachineError(`Start state (${startState.name}) is not part of this machine.`);
     }
 
     // Don't start the machine if there are no states defined

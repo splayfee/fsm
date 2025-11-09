@@ -9,7 +9,7 @@
     "emitDeclarationOnly": false,
 
     "skipLibCheck": true,
-    "strict": false
+    "strict": true
   },
   "include": ["src/**/*.ts"]
 }
