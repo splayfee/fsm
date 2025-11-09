@@ -241,39 +241,39 @@ describe('test the state machine', () => {
   });
 
   it('should provide context to all actions', async () => {
-    interface ContextType {
+    interface ITestContext {
       testEntry: string;
       testExit: string;
     }
-    const context: ContextType = {
+    const context: ITestContext = {
       testEntry: 'test123',
       testExit: 'test456'
     };
 
-    const entryAction: TEntryActionFn<ContextType> = async (state, ctx): Promise<void> => {
+    const entryAction: TEntryActionFn<ITestContext> = async (state, ctx): Promise<void> => {
       await _timeout();
       expect(ctx).toBeDefined();
       expect(ctx?.testEntry).toEqual('test123');
     };
 
-    const exitAction: TExitActionFn<ContextType> = async (state, ctx): Promise<boolean> => {
+    const exitAction: TExitActionFn<ITestContext> = async (state, ctx): Promise<boolean> => {
       await _timeout();
       expect(ctx).toBeDefined();
       expect(ctx?.testExit).toEqual('test456');
       return true;
     };
 
-    const stateMachine: AsyncStateMachine<ContextType> = new AsyncStateMachine<ContextType>(
+    const stateMachine: AsyncStateMachine<ITestContext> = new AsyncStateMachine<ITestContext>(
       'my first state machine',
       context
     );
-    const s1: AsyncState = stateMachine.createState(
+    const s1: AsyncState<ITestContext> = stateMachine.createState(
       'my first state',
       false,
       entryAction,
       exitAction
     );
-    const s2: AsyncState = stateMachine.createState('my second state', true);
+    const s2: AsyncState<ITestContext> = stateMachine.createState('my second state', true);
 
     s1.addTransition('next', s2);
 

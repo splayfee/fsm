@@ -104,14 +104,6 @@ export default class AsyncStateMachine<TContext = unknown> {
   // ----------------------------------------------------------
 
   /**
-   * This method throws an error with state machine details prefixed to the message.
-   * @param message The message to be prefixed.
-   */
-  private _throwStateMachineError(message: string): string {
-    throw new Error(`State Machine (${this._name}) - ${message}`);
-  }
-
-  /**
    * This method changes the state of the state machine.
    * @param newState The new state of the machine.
    */
@@ -120,7 +112,7 @@ export default class AsyncStateMachine<TContext = unknown> {
 
     // Throw an error if the machine is already in the requested state.
     if (newState === this._currentState) {
-      this._throwStateMachineError(`Already in state: currentState: ${this._currentState.name}.`);
+      this.throwStateMachineError(`Already in state: currentState: ${this._currentState.name}.`);
     }
 
     // Perform an exit action if it exists and record whether to allow the state change.
@@ -153,7 +145,7 @@ export default class AsyncStateMachine<TContext = unknown> {
    */
   private async _transitionHandler(triggerId: string): Promise<void> {
     if (!this.started) {
-      this._throwStateMachineError('Not started. Call start() before trigger().');
+      this.throwStateMachineError('Not started. Call start() before trigger().');
     }
 
     let transition: AsyncTransition | undefined = this._currentState?.getTransition(triggerId);
@@ -164,7 +156,7 @@ export default class AsyncStateMachine<TContext = unknown> {
     }
 
     if (!transition) {
-      this._throwStateMachineError(`Invalid Transition - triggerId: ${triggerId}.`);
+      this.throwStateMachineError(`Invalid Transition - triggerId: ${triggerId}.`);
     } else {
       return this._changeState(transition.targetState);
     }
@@ -176,7 +168,7 @@ export default class AsyncStateMachine<TContext = unknown> {
    */
   public addState(state: AsyncState): void {
     if (this._states.has(state.id)) {
-      this._throwStateMachineError(`State exists: ${state.id}.`);
+      this.throwStateMachineError(`State exists: ${state.id}.`);
     }
     this._states.set(state.id, state);
   }
@@ -237,17 +229,17 @@ export default class AsyncStateMachine<TContext = unknown> {
   public async start(startState: AsyncState = this._states.values().next().value): Promise<void> {
     // Don't restart the machine if it's already started
     if (this._currentState) {
-      this._throwStateMachineError('The state machine has already started.');
+      this.throwStateMachineError('The state machine has already started.');
     }
 
     // If the startState is missing.
     if (startState && !this._states.has(startState.id)) {
-      this._throwStateMachineError(`Start state (${startState.name}) is not part of this machine.`);
+      this.throwStateMachineError(`Start state (${startState.name}) is not part of this machine.`);
     }
 
     // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
-      this._throwStateMachineError(
+      this.throwStateMachineError(
         'No states have been defined. The state machine cannot be started.'
       );
     }
@@ -267,6 +259,14 @@ export default class AsyncStateMachine<TContext = unknown> {
     if (restart) {
       await this.start(this._startState);
     }
+  }
+
+  /**
+   * This method throws an error with state machine details prefixed to the message.
+   * @param message The message to be prefixed.
+   */
+  public throwStateMachineError(message: string): string {
+    throw new Error(`State Machine (${this._name}) - ${message}`);
   }
 
   /**

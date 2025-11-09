@@ -198,32 +198,37 @@ describe('test the state machine', (): void => {
   });
 
   it('should provide context to all actions', (): void => {
-    interface ContextType {
+    interface ITestContext {
       testEntry: string;
       testExit: string;
     }
-    const context = {
+    const context: ITestContext = {
       testEntry: 'test123',
       testExit: 'test456'
     };
 
-    const entryAction: TEntryActionFn<ContextType> = (state, context): void => {
+    const entryAction: TEntryActionFn<ITestContext> = (state, context): void => {
       expect(context).toBeDefined();
       expect(context?.testEntry).toEqual('test123');
     };
 
-    const exitAction: TExitActionFn<ContextType> = (state, context): boolean => {
+    const exitAction: TExitActionFn<ITestContext> = (state, context): boolean => {
       expect(context).toBeDefined();
       expect(context?.testExit).toEqual('test456');
       return true;
     };
 
-    const stateMachine: StateMachine = new StateMachine<ContextType>(
+    const stateMachine: StateMachine<ITestContext> = new StateMachine<ITestContext>(
       'my first state machine',
       context
     );
-    const s1: State = stateMachine.createState('my first state', false, entryAction, exitAction);
-    const s2: State = stateMachine.createState('my second state', true);
+    const s1: State<ITestContext> = stateMachine.createState(
+      'my first state',
+      false,
+      entryAction,
+      exitAction
+    );
+    const s2: State<ITestContext> = stateMachine.createState('my second state', true);
     s1.addTransition('next', s2);
     stateMachine.start();
     stateMachine.trigger('next');
