@@ -2,23 +2,26 @@
 
 ## Overview
 
-**Edium FSM** is a simple finite state machine written in TypeScript used for gaming or workflow systems. It supports local and global transitions/triggers, entry and exit actions, and the ability to block state transitions before exit. It works both on the client and the server in plain JavaScript or with TypeScript. This latest version adds an **asynchronous state machine** which can be useful when dealing with client/server applications.
+**Edium FSM** is a simple finite state machine written in TypeScript used for gaming or workflow systems. It supports local and global transitions/triggers, entry and exit actions, and the ability to block state transitions before exit. It works both on the client and the server in plain JavaScript or with TypeScript.
+
+**IMPORTANT UPDATE**
+The latest version adds a separate **asynchronous state machine** which can be useful when dealing with client/server applications (see the example below). NOTE - even though the major version was bumped this package should still be 100% drop-in / compatible with prervious versions. It simply adds the option to use the new asynchronous state machine.
 
 ## Features
 
-- Unlimited number of states
-- One or more completed states
-- Go to the previous state
-- Throws errors on invalid state transitions
-- Supports entry actions
-- Supports blocking exit actions
-- Start on any state
-- Reset the state machine with optional restart
-- Unlimited local transitions
-- Unlimited global transtions/triggers that bypass the current state's transition rules
-- State changes occur via triggers
+- Unlimited number of states.
+- One or more completed states.
+- Go to the previous state.
+- Throws errors on invalid state transitions.
+- Supports entry actions.
+- Supports blocking exit actions.
+- Start on any state.
+- Reset the state machine with optional restart.
+- Unlimited local transitions.
+- Unlimited global transtions/triggers that bypass the current state's transition rules.
+- State changes occur via triggers.
 - When creating the machine, optionally send in a context which is sent to all state actions.
-- Optional **Asynchronous State Machine** in addition to the previous synchronouse machine.
+- Optional **Asynchronous State Machine** in addition to the previous synchronous machine.
 
 ## Installation
 
@@ -26,12 +29,24 @@
     $ npm install @edium/fsm
 ```
 
+or
+
+```bash
+    $ yarn install @edium/fsm
+```
+
 ## Tests/Coverage
 
-The code is fully unit tested with near 100 test percent coverage. Additonally, all code has been vetted using Sonar Scanner (TypeScript) and Code Metrics.
+The code is fully unit tested with near 100% test coverage. Additonally, all code has been linted and type-checked.
 
 ```bash
   $ npm run test
+```
+
+or
+
+```bash
+  $ yarn run test
 ```
 
 ## Examples
@@ -101,12 +116,12 @@ s4.addTransition( "next", s5 );
 stateMachine.start( s1 );
 ```
 
-### Asynchronouse Machine
+### Asynchronous Machine
 
 Begin by referencing the module (browser):
 
 ```javascript
-import { State, StateMachine } from '@edium/fsm';
+import { AsyncState, AsyncStateMachine } from '@edium/fsm';
 ```
 
 or through Node.js:
@@ -122,7 +137,7 @@ const entryAction = async ( state, context ) => {
   await state.trigger( "next" );
 };
 
-const exitAction = ( state, context ) => {
+const exitAction = async ( state, context ) => {
   // Returning false will cancel the state transition
   return true;
 };
@@ -136,7 +151,7 @@ const decideAction = async ( state, context ) => {
   }
 };
 
-const finalAction = ( state ) => {
+const finalAction = async ( state ) => {
   // Can perform some final actions, the state machine is finished running.
 };
 
@@ -163,5 +178,5 @@ s3.addTransition( "next", s5 );
 s4.addTransition( "next", s5 );
 
 // Start the state machine
-await stateMachine.start( s1 );
+await asyncStateMachine.start( s1 );
 ```

@@ -14,7 +14,7 @@ import kebabCase from 'lodash-es/kebabCase';
  * of each state and enforces transition rules. An application can have
  * multiple state machines.
  */
-export default class StateMachine<TContext = any> {
+export default class StateMachine<TContext = unknown> {
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
@@ -53,7 +53,7 @@ export default class StateMachine<TContext = any> {
   /** The current state of the machine. */
   private _currentState?: State<TContext> = undefined;
 
-  /** The previous state of the machine; undefiend if there is no previous state. */
+  /** The previous state of the machine; undefined if there is no previous state. */
   private _previousState?: State<TContext> = undefined;
 
   /** A unique identifier for this state machine. */
@@ -61,7 +61,7 @@ export default class StateMachine<TContext = any> {
     return this._name;
   }
 
-  /** An identifier for this state machine. Not gauaranteed unique. Format is snake case and derived from the state machine's name. */
+  /** An identifier for this state machine. Not guaranteed unique. Format is kebab case and derived from the state machine's name. */
   public get id(): string {
     return kebabCase(this.name);
   }

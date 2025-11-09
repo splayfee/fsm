@@ -14,13 +14,13 @@ import kebabCase from 'lodash-es/kebabCase';
  * of each state and enforces transition rules. An application can have
  * multiple state machines.
  */
-export default class AsyncStateMachine<TContext = any> {
+export default class AsyncStateMachine<TContext = unknown> {
   private _queue: Promise<void> = Promise.resolve();
 
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
-   * @param [context] An optional context that will automatically be sent to every state action.
+   * @param context An optional context that will automatically be sent to every state action.
    */
   public constructor(
     name: string,
@@ -36,8 +36,6 @@ export default class AsyncStateMachine<TContext = any> {
 
   private _entryAction?: TEntryActionFn<TContext>;
   private _exitAction?: TExitActionFn<TContext>;
-
-  private _isTransitioning = false;
 
   /** A unique identifier for this state machine. */
   private _name: string;
@@ -57,7 +55,7 @@ export default class AsyncStateMachine<TContext = any> {
   /** The current state of the machine. */
   private _currentState?: AsyncState<TContext> = undefined;
 
-  /** The previous state of the machine; undefiend if there is no previous state. */
+  /** The previous state of the machine; undefined if there is no previous state. */
   private _previousState?: AsyncState<TContext> = undefined;
 
   /** A unique identifier for this state machine. */
@@ -65,7 +63,7 @@ export default class AsyncStateMachine<TContext = any> {
     return this._name;
   }
 
-  /** An identifier for this state machine. Not gauaranteed unique. Format is snake case and derived from the state machine's name. */
+  /** An identifier for this state machine. Not guaranteed unique. Format is kebab case and derived from the state machine's name. */
   public get id(): string {
     return kebabCase(this.name);
   }
@@ -255,7 +253,7 @@ export default class AsyncStateMachine<TContext = any> {
 
   /**
    * Resets the state machine.
-   * @param [restart] An optional flag that indicates the state machine should be restarted after reset.
+   * @param restart An optional flag that indicates the state machine should be restarted after reset.
    */
   public async reset(restart = false): Promise<void> {
     this._previousState = undefined;

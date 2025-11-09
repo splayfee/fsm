@@ -8,11 +8,17 @@ import kebabCase from 'lodash-es/kebabCase';
 import StateMachine from './StateMachine';
 import Transition from './Transition';
 
-export type TEntryActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => void;
-export type TExitActionFn<TContext = any> = (state: State<TContext>, context?: TContext) => boolean;
+export type TEntryActionFn<TContext = unknown> = (
+  state: State<TContext>,
+  context?: TContext
+) => void;
+export type TExitActionFn<TContext = unknown> = (
+  state: State<TContext>,
+  context?: TContext
+) => boolean;
 
 /** This class defines a new state for the state machine. */
-export default class State<TContext = any> {
+export default class State<TContext = unknown> {
   /**
    * Instantiates a new state machine.
    * @param stateMachine The state machine this state is associated with.
@@ -42,7 +48,7 @@ export default class State<TContext = any> {
   }
 
   /**
-   * An identifier for this state. Not gauaranteed unique. Format is snake case and derived from the state's name.
+   * An identifier for this state. Not guaranteed unique. Format is kebab case and derived from the state's name.
    */
   public get id(): string {
     return kebabCase(this.name);
@@ -65,7 +71,7 @@ export default class State<TContext = any> {
   //-----------------------------------------------------------------------
 
   /**
-   * This method returns a trigger id specific to this state and covnerted to snake case.
+   * This method returns a trigger id specific to this state and converted to kebab case.
    * @param triggerId The initial trigger id.
    */
   private _getLocalTriggerId(triggerId: string): string {

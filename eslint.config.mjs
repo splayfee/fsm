@@ -58,6 +58,8 @@ export default tseslint.config(
       '@typescript-eslint/no-use-before-define': 'error',
       '@typescript-eslint/prefer-for-of': 'error',
       '@typescript-eslint/prefer-namespace-keyword': 'error',
+      '@typescript-eslint/require-await': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/triple-slash-reference': 'error',
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
