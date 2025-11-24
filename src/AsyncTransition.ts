@@ -10,13 +10,13 @@ import AsyncState from './AsyncState';
  * are associated with every state. Only explicit transitions are allowed
  * between states.
  */
-export default class AsyncTransition {
+export default class AsyncTransition<TContext = unknown> {
   /**
    * Instantiates a new transition.
    * @param triggerId A unique identifier for the trigger.
    * @param targetState The new state that will be entered if the transition is successful.
    */
-  public constructor(triggerId: string, targetState: AsyncState) {
+  public constructor(triggerId: string, targetState: AsyncState<TContext>) {
     this._triggerId = triggerId;
     this._targetState = targetState;
   }
@@ -27,9 +27,9 @@ export default class AsyncTransition {
     return this._triggerId;
   }
 
-  private _targetState: AsyncState;
+  private _targetState: AsyncState<TContext>;
   /** The new state that will be entered if the transition is successful. */
-  public get targetState(): AsyncState {
+  public get targetState(): AsyncState<TContext> {
     return this._targetState;
   }
 }

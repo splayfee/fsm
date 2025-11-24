@@ -25,17 +25,17 @@ export default class State<TContext = unknown> {
    * from the state machine. Also used when defining transitions.
    * @param isComplete Optional Flag that indicates whether the state is a completed state.
    */
-  public constructor(stateMachine: StateMachine, name: string, isComplete = false) {
+  public constructor(stateMachine: StateMachine<TContext>, name: string, isComplete = false) {
     this._stateMachine = stateMachine;
     this._name = name;
     this._isComplete = isComplete;
   }
 
   /** A collection of transitions that are allowed for this state. */
-  private _transitions = new Map<string, Transition>();
+  private _transitions = new Map<string, Transition<TContext>>();
 
   /** The state machine this state is associated with. */
-  private _stateMachine: StateMachine;
+  private _stateMachine: StateMachine<TContext>;
 
   private _name: string;
   /**
@@ -82,7 +82,7 @@ export default class State<TContext = unknown> {
    * @param triggerId The associated unique identifier used to trigger this transition.
    * @param targetState The target state to enter upon transition.
    */
-  public addTransition(triggerId: string, targetState: State): void {
+  public addTransition(triggerId: string, targetState: State<TContext>): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
     if (this._transitions.has(localTriggerId)) {
       this._stateMachine.throwError(
@@ -91,11 +91,11 @@ export default class State<TContext = unknown> {
         localTriggerId
       );
     }
-    this._transitions.set(localTriggerId, new Transition(localTriggerId, targetState));
+    this._transitions.set(localTriggerId, new Transition<TContext>(localTriggerId, targetState));
   }
 
   /** Returns the transition relating to the trigger specified. */
-  public getTransition(triggerId: string): Transition | undefined {
+  public getTransition(triggerId: string): Transition<TContext> | undefined {
     return this._transitions.get(triggerId);
   }
 

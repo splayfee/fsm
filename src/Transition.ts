@@ -10,13 +10,13 @@ import State from './State';
  * are associated with every state. Only explicit transitions are allowed
  * between states.
  */
-export default class Transition {
+export default class Transition<TContext = unknown> {
   /**
    * Instantiates a new transition.
    * @param triggerId A unique identifier for the trigger.
    * @param targetState The new state that will be entered if the transition is successful.
    */
-  public constructor(triggerId: string, targetState: State) {
+  public constructor(triggerId: string, targetState: State<TContext>) {
     this._triggerId = triggerId;
     this._targetState = targetState;
   }
@@ -27,9 +27,9 @@ export default class Transition {
     return this._triggerId;
   }
 
-  private _targetState: State;
+  private _targetState: State<TContext>;
   /** The new state that will be entered if the transition is successful. */
-  public get targetState(): State {
+  public get targetState(): State<TContext> {
     return this._targetState;
   }
 }

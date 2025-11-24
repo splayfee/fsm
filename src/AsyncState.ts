@@ -25,17 +25,17 @@ export default class AsyncState<TContext = unknown> {
    * from the state machine. Also used when defining transitions.
    * @param isComplete Optional Flag that indicates whether the state is a completed state.
    */
-  public constructor(stateMachine: AsyncStateMachine, name: string, isComplete = false) {
+  public constructor(stateMachine: AsyncStateMachine<TContext>, name: string, isComplete = false) {
     this._stateMachine = stateMachine;
     this._name = name;
     this._isComplete = isComplete;
   }
 
   /** A collection of transitions that are allowed for this state. */
-  private _transitions = new Map<string, AsyncTransition>();
+  private _transitions = new Map<string, AsyncTransition<TContext>>();
 
   /** The state machine this state is associated with. */
-  private _stateMachine: AsyncStateMachine;
+  private _stateMachine: AsyncStateMachine<TContext>;
 
   private _name: string;
   /**
@@ -82,7 +82,7 @@ export default class AsyncState<TContext = unknown> {
    * @param triggerId The associated unique identifier used to trigger this transition.
    * @param targetState The target state to enter upon transition.
    */
-  public addTransition(triggerId: string, targetState: AsyncState): void {
+  public addTransition(triggerId: string, targetState: AsyncState<TContext>): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
     if (this._transitions.has(localTriggerId)) {
       this._stateMachine.throwError(
@@ -91,11 +91,14 @@ export default class AsyncState<TContext = unknown> {
         localTriggerId
       );
     }
-    this._transitions.set(localTriggerId, new AsyncTransition(localTriggerId, targetState));
+    this._transitions.set(
+      localTriggerId,
+      new AsyncTransition<TContext>(localTriggerId, targetState)
+    );
   }
 
   /** Returns the transition relating to the trigger specified. */
-  public getTransition(triggerId: string): AsyncTransition | undefined {
+  public getTransition(triggerId: string): AsyncTransition<TContext> | undefined {
     return this._transitions.get(triggerId);
   }
 

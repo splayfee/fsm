@@ -42,7 +42,7 @@ export default class StateMachine<TContext = unknown> {
   private _context?: TContext;
 
   /** A collection of all possible global machine transitions between states. */
-  private _transitions = new Map<string, Transition>();
+  private _transitions = new Map<string, Transition<TContext>>();
 
   /** A collection of all possible states for this state machine. */
   private _states = new Map<string, State<TContext>>();
@@ -76,12 +76,12 @@ export default class StateMachine<TContext = unknown> {
   }
 
   /** Returns the current state object or undefined if not set. */
-  public get currentState(): State | undefined {
+  public get currentState(): State<TContext> | undefined {
     return this._currentState;
   }
 
   /** Returns the previous state object or undefined if not set. */
-  public get previousState(): State | undefined {
+  public get previousState(): State<TContext> | undefined {
     return this._previousState;
   }
 
@@ -105,7 +105,7 @@ export default class StateMachine<TContext = unknown> {
    * This method changes the state of the state machine.
    * @param newState The new state of the machine.
    */
-  private _changeState(newState: State): void {
+  private _changeState(newState: State<TContext>): void {
     let allowExit = true;
 
     // Throw an error if the machine is already in the requested state.
@@ -145,7 +145,7 @@ export default class StateMachine<TContext = unknown> {
    * @param triggerId A unique identifier for the trigger.
    */
   private _transitionHandler(triggerId: string): void {
-    let transition: Transition | undefined = this._currentState?.getTransition(triggerId);
+    let transition: Transition<TContext> | undefined = this._currentState?.getTransition(triggerId);
 
     // Look for a global state transition
     if (!transition) {
@@ -163,7 +163,7 @@ export default class StateMachine<TContext = unknown> {
    * Adds a new state to the state machine.
    * @param state A new state instance.
    */
-  public addState(state: State): void {
+  public addState(state: State<TContext>): void {
     if (this._states.has(state.id)) {
       this.throwError(`State exists: ${state.id}.`, state.name);
     }
@@ -180,11 +180,11 @@ export default class StateMachine<TContext = unknown> {
    * @param triggerId A unique identifier for the trigger.
    * @param targetState The target state.
    */
-  public addGlobalTransition(triggerId: string, targetState: State): void {
+  public addGlobalTransition(triggerId: string, targetState: State<TContext>): void {
     if (this.started) {
       this.throwError('Cannot add a transition once the machine has started.');
     }
-    this._transitions.set(kebabCase(triggerId), new Transition(triggerId, targetState));
+    this._transitions.set(kebabCase(triggerId), new Transition<TContext>(triggerId, targetState));
   }
 
   /**
@@ -221,18 +221,28 @@ export default class StateMachine<TContext = unknown> {
    * @param id A unique identifier for the state.
    * @returns The state corresponding to the id, or null if one is not found.
    */
-  public getStateById(id: string): State | undefined {
+  public getStateById(id: string): State<TContext> | undefined {
     return this._states.get(kebabCase(id));
   }
 
   /**
    * Starts the state machine, throwing it into its starting state.
-   * @param [startState] An optional start state, the default is the first state that was added to the machine.
+   * @param startState An optional start state, the default is the first state that was added to the machine.
    */
-  public start(startState: State = this._states.values().next().value): void {
-    // Don't restart the machine if it's already started
+  public start(startState?: State<TContext>): void {
+    // Every state machne must have at least one state.
+    if (this._states.size === 0) {
+      this.throwError('The state machine must include at least one state.');
+    }
+
+    // Don't restart the machine if it's already started.
     if (this._currentState) {
       this.throwError('The state machine has already started.');
+    }
+
+    // If a start state is not provided, default to the first state.
+    if (!startState) {
+      startState = this._states.values().next().value!;
     }
 
     // If the startState is missing.
