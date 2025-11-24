@@ -18,7 +18,7 @@ export default class StateMachine<TContext = unknown> {
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
-   * @param [context] An optional context that will automatically be sent to every state action.
+   * @param context An optional context that will automatically be sent to every state action.
    */
   public constructor(
     name: string,
@@ -110,10 +110,7 @@ export default class StateMachine<TContext = unknown> {
 
     // Throw an error if the machine is already in the requested state.
     if (newState === this._currentState) {
-      this.throwError(
-        `Already in state: currentState: ${this._currentState.name}.`,
-        this._currentState.name
-      );
+      this.throwError(`Already in state: currentState: ${this._currentState.name}.`);
     }
 
     // Perform an exit action if it exists and record whether to allow the state change.
@@ -153,7 +150,7 @@ export default class StateMachine<TContext = unknown> {
     }
 
     if (!transition) {
-      this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, undefined, triggerId);
+      this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, triggerId);
     } else {
       this._changeState(transition.targetState);
     }
@@ -165,7 +162,7 @@ export default class StateMachine<TContext = unknown> {
    */
   public addState(state: State<TContext>): void {
     if (this._states.has(state.id)) {
-      this.throwError(`State exists: ${state.id}.`, state.name);
+      this.throwError(`State exists: ${state.id}.`);
     }
     if (this.started) {
       this.throwError('Cannot add a state once the machine has started.');
@@ -190,9 +187,9 @@ export default class StateMachine<TContext = unknown> {
   /**
    * This method provides a convenient way to create a new state and automatically add it to this state machine. States can be created and added manually as well.
    * @param name A unique name for the new state.
-   * @param [isComplete] Boolean that indicates whether the state is a completed state.
-   * @param [entryAction] An optional action that fires whenever the state machine enters this state.
-   * @param [exitAction] An optional action that fires whenever the state machine exits this state.
+   * @param isComplete Boolean that indicates whether the state is a completed state.
+   * @param entryAction An optional action that fires whenever the state machine enters this state.
+   * @param exitAction An optional action that fires whenever the state machine exits this state.
    * @returns The newly created state.
    */
   public createState(
@@ -230,9 +227,9 @@ export default class StateMachine<TContext = unknown> {
    * @param startState An optional start state, the default is the first state that was added to the machine.
    */
   public start(startState?: State<TContext>): void {
-    // Every state machne must have at least one state.
+    // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
-      this.throwError('The state machine must include at least one state.');
+      this.throwError('No states have been defined. The state machine cannot be started.');
     }
 
     // Don't restart the machine if it's already started.
@@ -247,15 +244,7 @@ export default class StateMachine<TContext = unknown> {
 
     // If the startState is missing.
     if (startState && !this._states.has(startState.id)) {
-      this.throwError(
-        `Start state (${startState.name}) is not part of this machine.`,
-        startState.name
-      );
-    }
-
-    // Don't start the machine if there are no states defined
-    if (this._states.size === 0) {
-      this.throwError('No states have been defined. The state machine cannot be started.');
+      this.throwError(`Start state (${startState.name}) is not part of this machine.`);
     }
 
     this._startState = startState;
@@ -264,7 +253,7 @@ export default class StateMachine<TContext = unknown> {
 
   /**
    * Resets the state machine.
-   * @param [restart] An optional flag that indicates the state machine should be restarted after reset.
+   * @param restart An optional flag that indicates the state machine should be restarted after reset.
    */
   public reset(restart = false): void {
     this._previousState = undefined;
@@ -277,19 +266,25 @@ export default class StateMachine<TContext = unknown> {
   /**
    * This method throws an error with state machine details prefixed to the message.
    * @param message The message to be prefixed.
+   * @param trigger Optional trigger.
    */
-  public throwError(message: string, state?: string, trigger?: string): void {
-    throw new StateMachineError(this._name, message, state, trigger);
+  public throwError(message: string, trigger?: string): void {
+    throw new StateMachineError(
+      this._name,
+      `State Machine (${this._name}) - ${message}`,
+      this._currentState?.name,
+      trigger
+    );
   }
 
   /**
    * Emits a new trigger message which causes the state machine to transition to a new state.
    * @param triggerId A unique identifier for the trigger.
-   * @param [sendGlobal] Tells the system to send a global transition rather than a state-specific transition.
+   * @param sendGlobal Tells the system to send a global transition rather than a state-specific transition.
    */
   public trigger(triggerId: string, sendGlobal = false): void {
     if (!this.started) {
-      this.throwError('Cannot trigger if the machine has not started.', undefined, triggerId);
+      this.throwError('Cannot trigger if the machine has not started.', triggerId);
     }
     if (this.isComplete) {
       this.throwError('Cannot trigger if the machine has completed.', triggerId);

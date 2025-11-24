@@ -112,10 +112,7 @@ export default class AsyncStateMachine<TContext = unknown> {
 
     // Throw an error if the machine is already in the requested state.
     if (newState === this._currentState) {
-      this.throwError(
-        `Already in state: currentState: ${this._currentState.name}.`,
-        this._currentState.name
-      );
+      this.throwError(`Already in state: currentState: ${this._currentState.name}.`);
     }
 
     // Perform an exit action if it exists and record whether to allow the state change.
@@ -156,7 +153,7 @@ export default class AsyncStateMachine<TContext = unknown> {
     }
 
     if (!transition) {
-      this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, undefined, triggerId);
+      this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, triggerId);
     } else {
       return this._changeState(transition.targetState);
     }
@@ -168,7 +165,7 @@ export default class AsyncStateMachine<TContext = unknown> {
    */
   public addState(state: AsyncState<TContext>): void {
     if (this._states.has(state.id)) {
-      this.throwError(`State exists: ${state.id}.`, state.name);
+      this.throwError(`State exists: ${state.id}.`);
     }
     if (this.started) {
       this.throwError('Cannot add a state once the machine has started.');
@@ -196,9 +193,9 @@ export default class AsyncStateMachine<TContext = unknown> {
   /**
    * This method provides a convenient way to create a new state and automatically add it to this state machine. States can be created and added manually as well.
    * @param name A unique name for the new state.
-   * @param [isComplete] Boolean that indicates whether the state is a completed state.
-   * @param [entryAction] An optional action that fires whenever the state machine enters this state.
-   * @param [exitAction] An optional action that fires whenever the state machine exits this state.
+   * @param isComplete Boolean that indicates whether the state is a completed state.
+   * @param entryAction An optional action that fires whenever the state machine enters this state.
+   * @param exitAction An optional action that fires whenever the state machine exits this state.
    * @returns The newly created state.
    */
   public createState(
@@ -233,12 +230,12 @@ export default class AsyncStateMachine<TContext = unknown> {
 
   /**
    * Starts the state machine, throwing it into its starting state.
-   * @param [startState] An optional start state, the default is the first state that was added to the machine.
+   * @param startState An optional start state, the default is the first state that was added to the machine.
    */
   public async start(startState?: AsyncState<TContext>): Promise<void> {
-    // Every state machne must have at least one state.    // Every state machne must have at least one state.
+    // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
-      this.throwError('The state machine must include at least one state.');
+      this.throwError('No states have been defined. The state machine cannot be started.');
     }
 
     // Don't restart the machine if it's already started.
@@ -253,15 +250,7 @@ export default class AsyncStateMachine<TContext = unknown> {
 
     // If the startState is missing.
     if (startState && !this._states.has(startState.id)) {
-      this.throwError(
-        `Start state (${startState.name}) is not part of this machine.`,
-        startState.name
-      );
-    }
-
-    // Don't start the machine if there are no states defined
-    if (this._states.size === 0) {
-      this.throwError('No states have been defined. The state machine cannot be started.');
+      this.throwError(`Start state (${startState.name}) is not part of this machine.`);
     }
 
     this._startState = startState;
@@ -284,9 +273,15 @@ export default class AsyncStateMachine<TContext = unknown> {
   /**
    * This method throws an error with state machine details prefixed to the message.
    * @param message The message to be prefixed.
+   * @param trigger Optional trigger.
    */
-  public throwError(message: string, state?: string, trigger?: string): void {
-    throw new StateMachineError(this._name, message, state, trigger);
+  public throwError(message: string, trigger?: string): void {
+    throw new StateMachineError(
+      this._name,
+      `State Machine (${this._name}) - ${message}`,
+      this._currentState?.name,
+      trigger
+    );
   }
 
   /**
