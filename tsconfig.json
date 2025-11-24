@@ -16,7 +16,8 @@
     "sourceMap": false,
     "resolveJsonModule": true,
     "strictNullChecks": true,
-    "types": ["node"]
+    "types": ["node"],
+    "strict": true
   },
   "include": ["src/**/*.ts"],
   "exclude": [

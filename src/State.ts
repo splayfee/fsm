@@ -1,11 +1,10 @@
 /**
  * @fileOverview This file holds the State class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
- * @version 2.0.0
  */
 
 import kebabCase from 'lodash-es/kebabCase';
-import StateMachine from './StateMachine';
+import type StateMachine from './StateMachine';
 import Transition from './Transition';
 
 export type TEntryActionFn<TContext = unknown> = (
@@ -18,7 +17,7 @@ export type TExitActionFn<TContext = unknown> = (
 ) => boolean;
 
 /** This class defines a new state for the state machine. */
-export default class State<TContext = any> {
+export default class State<TContext = unknown> {
   /**
    * Instantiates a new state.
    * @param stateMachine The state machine this state is associated with.

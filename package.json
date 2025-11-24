@@ -24,7 +24,7 @@
     "type-check": "tsc --noEmit"
   },
   "engines": {
-    "node": ">=22.18.0"
+    "node": ">=18"
   },
   "type": "module",
   "main": "dist/index.cjs",
@@ -58,6 +58,9 @@
   ],
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
+  "dependencies": {
+    "lodash-es": "^4.17.21"
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/lodash-es": "^4.17.12",
@@ -66,7 +69,6 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
-    "lodash-es": "^4.17.21",
     "prettier": "^3.6.2",
     "tsup": "^8.5.1",
     "tsx": "^4.20.6",

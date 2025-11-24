@@ -1,7 +1,6 @@
 /**
  * @fileOverview This file holds the Transition class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
- * @version 2.0.0
  */
 
 import State from './State';

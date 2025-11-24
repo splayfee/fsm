@@ -1,7 +1,6 @@
 /**
  * @fileOverview This file holds the StateMachine class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
- * @version 1.0.0
  */
 
 import State, { TEntryActionFn, TExitActionFn } from './State';

@@ -1,7 +1,6 @@
 /**
  * @fileOverview This file holds the AsyncStateMachine class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
- * @version 1.0.0
  */
 
 import AsyncState, { TEntryActionFn, TExitActionFn } from './AsyncState';

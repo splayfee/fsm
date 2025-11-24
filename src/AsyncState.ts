@@ -1,11 +1,10 @@
 /**
  * @fileOverview This file holds the AsyncState class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
- * @version 2.0.0
  */
 
 import kebabCase from 'lodash-es/kebabCase';
-import AsyncStateMachine from './AsyncStateMachine';
+import type AsyncStateMachine from './AsyncStateMachine';
 import AsyncTransition from './AsyncTransition';
 
 export type TEntryActionFn<TContext = unknown> = (
@@ -18,7 +17,7 @@ export type TExitActionFn<TContext = unknown> = (
 ) => Promise<boolean>;
 
 /** This class defines a new state for the state machine. */
-export default class AsyncState<TContext = any> {
+export default class AsyncState<TContext = unknown> {
   /**
    * Instantiates a new state.
    * @param stateMachine The state machine this state is associated with.

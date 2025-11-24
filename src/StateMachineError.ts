@@ -10,10 +10,10 @@ export default class StateMachineError extends Error {
    * @param trigger The affected trigger. Optional.
    */
   public constructor(
-    public machine: string,
-    message: string,
-    public state?: string,
-    public trigger?: string
+    public readonly machine: string,
+    public readonly message: string,
+    public readonly state?: string,
+    public readonly trigger?: string
   ) {
     super(`State Machine (${machine}) - ${message}`);
     this.name = 'StateMachineError';
