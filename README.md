@@ -135,7 +135,7 @@ stateMachine.start(s1);
 
 # Asynchronous Machine
 
-This example implements a safe asynchronouse state machine that does not allow the user to directly change the state during running work.
+This example implements a safe asynchronous state machine that does not allow the user to directly change the state during running work.
 
 > **IMPORTANT**
 > Do not call **asyncStateMachine.trigger()** from inside entry/exit actions. Instead you must use **state.triggerInternal()**. Internal triggers are queued and processed safely once the current transition finishes, whereas external triggers will generate an error.
