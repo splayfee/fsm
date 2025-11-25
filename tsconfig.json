@@ -1,38 +1,29 @@
 {
   "compilerOptions": {
-    "declaration": true,
-    "target": "es6",
-    "module": "commonjs",
-    "strict": true,
-    "jsx": "preserve",
-    "removeComments": true,
-    "importHelpers": true,
-    "moduleResolution": "node",
-    "experimentalDecorators": true,
-    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDirs": [
-      "src"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    },
-    "lib": [
-      "dom",
-      "esnext",
-      "scripthost"
-    ]
+    "declaration": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
+    "rootDir": "src",
+    "outDir": "dist",
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "resolveJsonModule": true,
+    "strictNullChecks": true,
+    "types": ["node"],
+    "strict": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "./node_modules",
+    "./node_modules/*",
+    "./node_modules/@types/node/index.d.ts"
   ]
 }

@@ -1,23 +1,23 @@
 /**
- * @fileOverview This file holds the State class definition.
+ * @fileOverview This file holds the AsyncState class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  */
 
 import kebabCase from 'lodash-es/kebabCase';
-import type StateMachine from './StateMachine';
-import Transition from './Transition';
+import type AsyncStateMachine from './AsyncStateMachine';
+import AsyncTransition from './AsyncTransition';
 
-export type TEntryActionFn<TContext = unknown> = (
-  state: State<TContext>,
+export type TEntryActionAsyncFn<TContext = unknown> = (
+  state: AsyncState<TContext>,
   context?: TContext
-) => void;
-export type TExitActionFn<TContext = unknown> = (
-  state: State<TContext>,
+) => Promise<void>;
+export type TExitActionAsyncFn<TContext = unknown> = (
+  state: AsyncState<TContext>,
   context?: TContext
-) => boolean;
+) => Promise<boolean>;
 
 /** This class defines a new state for the state machine. */
-export default class State<TContext = unknown> {
+export default class AsyncState<TContext = unknown> {
   /**
    * Instantiates a new state.
    * @param stateMachine The state machine this state is associated with.
@@ -25,17 +25,17 @@ export default class State<TContext = unknown> {
    * from the state machine. Also used when defining transitions.
    * @param isComplete Optional Flag that indicates whether the state is a completed state.
    */
-  public constructor(stateMachine: StateMachine<TContext>, name: string, isComplete = false) {
+  public constructor(stateMachine: AsyncStateMachine<TContext>, name: string, isComplete = false) {
     this._stateMachine = stateMachine;
     this._name = name;
     this._isComplete = isComplete;
   }
 
   /** A collection of transitions that are allowed for this state. */
-  private _transitions = new Map<string, Transition<TContext>>();
+  private _transitions = new Map<string, AsyncTransition<TContext>>();
 
   /** The state machine this state is associated with. */
-  private _stateMachine: StateMachine<TContext>;
+  private _stateMachine: AsyncStateMachine<TContext>;
 
   private _name: string;
   /**
@@ -60,10 +60,10 @@ export default class State<TContext = unknown> {
   }
 
   /** An optional action that is invoked whenever the state machine enters this state. */
-  public entryAction?: TEntryActionFn<TContext>;
+  public entryAction?: TEntryActionAsyncFn<TContext>;
 
   /** An optional action that is invoked whenever the state machine exits this state. */
-  public exitAction?: TExitActionFn<TContext>;
+  public exitAction?: TExitActionAsyncFn<TContext>;
 
   //-----------------------------------------------------------------------
   // METHODS
@@ -82,27 +82,45 @@ export default class State<TContext = unknown> {
    * @param triggerId The associated unique identifier used to trigger this transition.
    * @param targetState The target state to enter upon transition.
    */
-  public addTransition(triggerId: string, targetState: State<TContext>): void {
+  public addTransition(triggerId: string, targetState: AsyncState<TContext>): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
     if (this._transitions.has(localTriggerId)) {
       this._stateMachine.throwError(`Transition exists: ${localTriggerId}.`, localTriggerId);
     }
-    this._transitions.set(localTriggerId, new Transition<TContext>(localTriggerId, targetState));
+    this._transitions.set(
+      localTriggerId,
+      new AsyncTransition<TContext>(localTriggerId, targetState)
+    );
   }
 
   /** Returns the transition relating to the trigger specified. */
-  public getTransition(triggerId: string): Transition<TContext> | undefined {
+  public getTransition(triggerId: string): AsyncTransition<TContext> | undefined {
     return this._transitions.get(triggerId);
   }
 
   /**
    * Triggers the state machine which will attempt to transition to a new state.
+   * This method is intended for callers outside of entry/exit that should
+   * respect the state machine's busy flag.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Optional flag which tells the state machine to send a
    * global transition rather than a state-specific transition. Global transitions
    * can bypass local state transition rules.
    */
-  public trigger(triggerId: string, sendGlobal = false): void {
-    this._stateMachine.trigger(triggerId, sendGlobal);
+  public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
+    return this._stateMachine.trigger(triggerId, sendGlobal);
+  }
+
+  /**
+   * Triggers the state machine which will attempt to transition to a new state
+   * from within this state (entry/exit). These triggers are considered
+   * *internal* and are allowed to be queued while the state machine is busy.
+   * @param triggerId A unique identifier for the trigger.
+   * @param sendGlobal Optional flag which tells the state machine to send a
+   * global transition rather than a state-specific transition. Global transitions
+   * can bypass local state transition rules.
+   */
+  public async triggerInternal(triggerId: string, sendGlobal = false): Promise<void> {
+    return this._stateMachine.trigger(triggerId, sendGlobal, true);
   }
 }

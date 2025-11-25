@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "2.1.5",
+  "version": "3.0.0",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
@@ -15,28 +15,37 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
-    "docs": "./node_modules/.bin/typedoc src/index.ts --out docs",
-    "test": "./node_modules/.bin/mocha --timeout 999999 --colors --require ts-node/register tests/**/*.spec.ts",
-    "coverage": "nyc npm run test"
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist --clean --tsconfig tsconfig.tsup.json",
+    "fix": "pnpm lint --fix && pnpm format",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
   },
-  "nyc": {
-    "extension": [
-      ".ts",
-      ".tsx"
-    ],
-    "exclude": [
-      "**/*.d.ts",
-      "**/*.spec.ts"
-    ],
-    "reporter": [
-      "lcov",
-      "text",
-      "text-summary"
-    ]
+  "engines": {
+    "node": ">=18"
   },
-  "main": "dist/index.js",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
   "keywords": [
     "finite state machine",
     "fsm",
@@ -49,26 +58,23 @@
   ],
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
-  "devDependencies": {
-    "@types/chai": "^4.3.16",
-    "@types/lodash": "^4.17.6",
-    "@types/mocha": "^10.0.7",
-    "@types/node": "^20.14.9",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0",
-    "chai": "^4.3.7",
-    "eslint": "^9.6.0",
-    "istanbul": "^0.4.5",
-    "jsonlint": "^1.6.3",
-    "mocha": "^10.6.0",
-    "nyc": "^17.0.0",
-    "ts-node": "^10.9.2",
-    "typedoc": "^0.23.21",
-    "typescript": "^5.5.3"
-  },
   "dependencies": {
-    "global": "^4.4.0",
-    "lodash": "^4.17.21",
-    "tslib": "^2.6.3"
-  }
+    "lodash-es": "^4.17.21"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^4.0.14",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vitest": "^4.0.14"
+  },
+  "packageManager": "pnpm@10.23.0+sha512.21c4e5698002ade97e4efe8b8b4a89a8de3c85a37919f957e7a0f30f38fbc5bbdd05980ffe29179b2fb6e6e691242e098d945d1601772cad0fef5fb6411e2a4b"
 }

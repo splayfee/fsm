@@ -1,12 +1,12 @@
 /**
- * @fileOverview This file holds the StateMachine class definition.
+ * @fileOverview This file holds the AsyncStateMachine class definition.
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  */
 
-import State, { TEntryActionFn, TExitActionFn } from './State';
-import StateMachineError from './StateMachineError';
-import Transition from './Transition';
+import AsyncState, { TEntryActionAsyncFn, TExitActionAsyncFn } from './AsyncState';
+import AsyncTransition from './AsyncTransition';
 import kebabCase from 'lodash-es/kebabCase';
+import StateMachineError from './StateMachineError';
 
 /**
  * This class defines a new state machine. The state machine takes in
@@ -14,7 +14,7 @@ import kebabCase from 'lodash-es/kebabCase';
  * of each state and enforces transition rules. An application can have
  * multiple state machines.
  */
-export default class StateMachine<TContext = unknown> {
+export default class AsyncStateMachine<TContext = unknown> {
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
@@ -23,8 +23,8 @@ export default class StateMachine<TContext = unknown> {
   public constructor(
     name: string,
     context?: TContext,
-    entryAction?: TEntryActionFn<TContext>,
-    exitAction?: TExitActionFn<TContext>
+    entryAction?: TEntryActionAsyncFn<TContext>,
+    exitAction?: TExitActionAsyncFn<TContext>
   ) {
     this._name = name;
     this._context = context;
@@ -32,11 +32,23 @@ export default class StateMachine<TContext = unknown> {
     this._exitAction = exitAction;
   }
 
+  /**
+   * Flag that indicates the state machine is currently processing a transition.
+   * External triggers are blocked while busy.
+   */
+  private _busy = false;
+
+  /**
+   * Internal queue of trigger identifiers that will be processed sequentially.
+   * Internal triggers raised from states during entry/exit are enqueued here.
+   */
+  private _triggerQueue: string[] = [];
+
   /** Fires when this state is entered. */
-  private _entryAction?: TEntryActionFn<TContext>;
+  private _entryAction?: TEntryActionAsyncFn<TContext>;
 
   /** Fires when this state attempts to exit. Can be blocked. */
-  private _exitAction?: TExitActionFn<TContext>;
+  private _exitAction?: TExitActionAsyncFn<TContext>;
 
   /** A unique identifier for this state machine. */
   private _name: string;
@@ -45,23 +57,52 @@ export default class StateMachine<TContext = unknown> {
   private _context?: TContext;
 
   /** A collection of all possible global machine transitions between states. */
-  private _transitions = new Map<string, Transition<TContext>>();
+  private _transitions = new Map<string, AsyncTransition<TContext>>();
 
   /** A collection of all possible states for this state machine. */
-  private _states = new Map<string, State<TContext>>();
+  private _states = new Map<string, AsyncState<TContext>>();
 
   /** The state that should be entered when the machine is first started. */
-  private _startState?: State<TContext> = undefined;
+  private _startState?: AsyncState<TContext> = undefined;
 
   /** The current state of the machine. */
-  private _currentState?: State<TContext> = undefined;
+  private _currentState?: AsyncState<TContext> = undefined;
 
   /** The previous state of the machine; undefined if there is no previous state. */
-  private _previousState?: State<TContext> = undefined;
+  private _previousState?: AsyncState<TContext> = undefined;
+
+  /**
+   * Processes queued triggers sequentially while the state machine is busy.
+   * Internal triggers raised during entry/exit are enqueued and handled here.
+   */
+  private async _processTriggerQueue(): Promise<void> {
+    // Another processor is already running; nothing to do.
+    if (this._busy) {
+      return;
+    }
+
+    this._busy = true;
+    try {
+      while (this._triggerQueue.length > 0) {
+        const nextTriggerId = this._triggerQueue.shift()!;
+        await this._transitionHandler(nextTriggerId);
+      }
+    } finally {
+      this._busy = false;
+    }
+  }
 
   /** A unique identifier for this state machine. */
   public get name(): string {
     return this._name;
+  }
+
+  /**
+   * Flag that indicates the state machine is currently processing a transition.
+   * External triggers are blocked while busy.
+   */
+  public get busy(): boolean {
+    return this._busy;
   }
 
   /** An identifier for this state machine. Not guaranteed unique. Format is kebab case and derived from the state machine's name. */
@@ -79,24 +120,24 @@ export default class StateMachine<TContext = unknown> {
   }
 
   /** Returns the current state object or undefined if not set. */
-  public get currentState(): State<TContext> | undefined {
+  public get currentState(): AsyncState<TContext> | undefined {
     return this._currentState;
   }
 
   /** Returns the previous state object or undefined if not set. */
-  public get previousState(): State<TContext> | undefined {
+  public get previousState(): AsyncState<TContext> | undefined {
     return this._previousState;
   }
 
   /** Flag that indicates whether the state machine has started. */
   public get started(): boolean {
-    return this._currentState instanceof State;
+    return this._currentState instanceof AsyncState;
   }
 
   /**
    * Returns states registered with this state machine.
    */
-  public get states(): ReadonlyMap<string, State<TContext>> {
+  public get states(): ReadonlyMap<string, AsyncState<TContext>> {
     return this._states;
   }
 
@@ -108,7 +149,7 @@ export default class StateMachine<TContext = unknown> {
    * This method changes the state of the state machine.
    * @param newState The new state of the machine.
    */
-  private _changeState(newState: State<TContext>): void {
+  private async _changeState(newState: AsyncState<TContext>): Promise<void> {
     let allowExit = true;
 
     // Throw an error if the machine is already in the requested state.
@@ -118,11 +159,11 @@ export default class StateMachine<TContext = unknown> {
 
     // Perform an exit action if it exists and record whether to allow the state change.
     if (this._currentState?.exitAction) {
-      allowExit = this._currentState.exitAction(this._currentState, this._context);
+      allowExit = await this._currentState.exitAction(this._currentState, this._context);
     }
 
     if (this._currentState && this._exitAction) {
-      allowExit = this._exitAction(this._currentState, this._context);
+      allowExit = await this._exitAction(this._currentState, this._context);
     }
 
     // The current state can cancel the state change request if necessary.
@@ -130,12 +171,12 @@ export default class StateMachine<TContext = unknown> {
       this._previousState = this._currentState;
       this._currentState = newState;
 
-      // Perform an entrance action if it exists
+      // Perform any entrance action if it exists
       if (this._currentState?.entryAction) {
-        this._currentState.entryAction(newState, this._context);
+        await this._currentState.entryAction(newState, this._context);
       }
       if (this._entryAction) {
-        this._entryAction(newState, this._context);
+        await this._entryAction(newState, this._context);
       }
     }
   }
@@ -144,8 +185,9 @@ export default class StateMachine<TContext = unknown> {
    * This method handles all transitions from state to state. It receives a message used to determine which transition to execute.
    * @param triggerId A unique identifier for the trigger.
    */
-  private _transitionHandler(triggerId: string): void {
-    let transition: Transition<TContext> | undefined = this._currentState?.getTransition(triggerId);
+  private async _transitionHandler(triggerId: string): Promise<void> {
+    let transition: AsyncTransition<TContext> | undefined =
+      this._currentState?.getTransition(triggerId);
 
     // Look for a global state transition
     if (!transition) {
@@ -155,7 +197,7 @@ export default class StateMachine<TContext = unknown> {
     if (!transition) {
       this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, triggerId);
     } else {
-      this._changeState(transition.targetState);
+      return this._changeState(transition.targetState);
     }
   }
 
@@ -163,7 +205,7 @@ export default class StateMachine<TContext = unknown> {
    * Adds a new state to the state machine.
    * @param state A new state instance.
    */
-  public addState(state: State<TContext>): void {
+  public addState(state: AsyncState<TContext>): void {
     if (this._states.has(state.id)) {
       this.throwError(`State exists: ${state.id}.`);
     }
@@ -180,11 +222,14 @@ export default class StateMachine<TContext = unknown> {
    * @param triggerId A unique identifier for the trigger.
    * @param targetState The target state.
    */
-  public addGlobalTransition(triggerId: string, targetState: State<TContext>): void {
+  public addGlobalTransition(triggerId: string, targetState: AsyncState<TContext>): void {
     if (this.started) {
       this.throwError('Cannot add a transition once the machine has started.');
     }
-    this._transitions.set(kebabCase(triggerId), new Transition<TContext>(triggerId, targetState));
+    this._transitions.set(
+      kebabCase(triggerId),
+      new AsyncTransition<TContext>(triggerId, targetState)
+    );
   }
 
   /**
@@ -198,10 +243,10 @@ export default class StateMachine<TContext = unknown> {
   public createState(
     name: string,
     isComplete = false,
-    entryAction?: TEntryActionFn<TContext>,
-    exitAction?: TExitActionFn<TContext>
-  ): State<TContext> {
-    const state = new State(this, name, isComplete);
+    entryAction?: TEntryActionAsyncFn<TContext>,
+    exitAction?: TExitActionAsyncFn<TContext>
+  ): AsyncState<TContext> {
+    const state = new AsyncState(this, name, isComplete);
     state.entryAction = entryAction;
     state.exitAction = exitAction;
     this.addState(state);
@@ -209,9 +254,9 @@ export default class StateMachine<TContext = unknown> {
   }
 
   /** This method returns the state machine to the previous state if there is one. */
-  public gotoPrevious(): void {
+  public async gotoPrevious(): Promise<void> {
     if (this._previousState) {
-      this._changeState(this._previousState);
+      await this._changeState(this._previousState);
     }
   }
 
@@ -221,7 +266,7 @@ export default class StateMachine<TContext = unknown> {
    * @param id A unique identifier for the state.
    * @returns The state corresponding to the id, or null if one is not found.
    */
-  public getStateById(id: string): State<TContext> | undefined {
+  public getStateById(id: string): AsyncState<TContext> | undefined {
     return this._states.get(kebabCase(id));
   }
 
@@ -229,7 +274,7 @@ export default class StateMachine<TContext = unknown> {
    * Starts the state machine, throwing it into its starting state.
    * @param startState An optional start state, the default is the first state that was added to the machine.
    */
-  public start(startState?: State<TContext>): void {
+  public async start(startState?: AsyncState<TContext>): Promise<void> {
     // Don't start the machine if there are no states defined
     if (this._states.size === 0) {
       this.throwError('No states have been defined. The state machine cannot be started.');
@@ -251,18 +296,22 @@ export default class StateMachine<TContext = unknown> {
     }
 
     this._startState = startState;
-    this._changeState(startState);
+    await this._changeState(startState);
   }
 
   /**
    * Resets the state machine.
    * @param restart An optional flag that indicates the state machine should be restarted after reset.
    */
-  public reset(restart = false): void {
+  public async reset(restart = false): Promise<void> {
+    if (this._busy) {
+      this.throwError('The state machine is busy. Cannot reset.');
+    }
+    this._triggerQueue = [];
     this._previousState = undefined;
     this._currentState = undefined;
     if (restart) {
-      this.start(this._startState);
+      await this.start(this._startState);
     }
   }
 
@@ -285,7 +334,14 @@ export default class StateMachine<TContext = unknown> {
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Tells the system to send a global transition rather than a state-specific transition.
    */
-  public trigger(triggerId: string, sendGlobal = false): void {
+  public async trigger(triggerId: string, sendGlobal?: boolean): Promise<void>;
+  public async trigger(
+    triggerId: string,
+    sendGlobal: boolean | undefined,
+    internal: boolean
+  ): Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  public async trigger(triggerId: string, sendGlobal = false, _internal = false): Promise<void> {
     if (!this.started) {
       this.throwError('Cannot trigger if the machine has not started.', triggerId);
     }
@@ -293,9 +349,24 @@ export default class StateMachine<TContext = unknown> {
       this.throwError('Cannot trigger if the machine has completed.', triggerId);
     }
 
+    // External callers must respect the busy flag.
+    if (this._busy && !_internal) {
+      this.throwError('State Machine is busy.', triggerId);
+    }
+
+    // Compute the local trigger id relative to the current state unless this is a global trigger.
     if (!sendGlobal && this._currentState) {
       triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
     }
-    this._transitionHandler(triggerId);
+
+    // If we're already busy and this is an internal trigger, just enqueue it.
+    if (this._busy && _internal) {
+      this._triggerQueue.push(triggerId);
+      return;
+    }
+
+    // Not busy: enqueue this trigger and start the processor.
+    this._triggerQueue.push(triggerId);
+    return this._processTriggerQueue();
   }
 }
