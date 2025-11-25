@@ -100,13 +100,27 @@ export default class AsyncState<TContext = unknown> {
 
   /**
    * Triggers the state machine which will attempt to transition to a new state.
+   * This method is intended for callers outside of entry/exit that should
+   * respect the state machine's busy flag.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Optional flag which tells the state machine to send a
    * global transition rather than a state-specific transition. Global transitions
    * can bypass local state transition rules.
    */
-
   public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
     return this._stateMachine.trigger(triggerId, sendGlobal);
+  }
+
+  /**
+   * Triggers the state machine which will attempt to transition to a new state
+   * from within this state (entry/exit). These triggers are considered
+   * *internal* and are allowed to be queued while the state machine is busy.
+   * @param triggerId A unique identifier for the trigger.
+   * @param sendGlobal Optional flag which tells the state machine to send a
+   * global transition rather than a state-specific transition. Global transitions
+   * can bypass local state transition rules.
+   */
+  public async triggerInternal(triggerId: string, sendGlobal = false): Promise<void> {
+    return this._stateMachine.trigger(triggerId, sendGlobal, true);
   }
 }

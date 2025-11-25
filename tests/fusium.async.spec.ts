@@ -399,7 +399,7 @@ describe('test the state machine', () => {
         try {
           entryCount++;
           expect(state).toBeInstanceOf(AsyncState);
-          await state.trigger('next');
+          await state.triggerInternal('next');
         } catch (err) {
           reject(err as Error);
         }
@@ -423,9 +423,9 @@ describe('test the state machine', () => {
           expect(state).toBeInstanceOf(AsyncState);
           const index = Math.floor(Math.random() * 2);
           if (index === 0) {
-            await state.trigger('gotoThree');
+            await state.triggerInternal('gotoThree');
           } else {
-            await state.trigger('gotoThree'); // same outcome, could branch if needed
+            await state.triggerInternal('gotoThree'); // same outcome, could branch if needed
           }
         } catch (err) {
           reject(err as Error);

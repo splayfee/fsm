@@ -15,8 +15,6 @@ import StateMachineError from './StateMachineError';
  * multiple state machines.
  */
 export default class AsyncStateMachine<TContext = unknown> {
-  private _queue: Promise<void> = Promise.resolve();
-
   /**
    * Instantiates a new state machine.
    * @param name A unique identifier for this state machine.
@@ -34,7 +32,21 @@ export default class AsyncStateMachine<TContext = unknown> {
     this._exitAction = exitAction;
   }
 
+  /**
+   * Flag that indicates the state machine is currently processing a transition.
+   * External triggers are blocked while busy.
+   */
+  private _busy = false;
+
+  /**
+   * Internal queue of trigger identifiers that will be processed sequentially.
+   * Internal triggers raised from states during entry/exit are enqueued here.
+   */
+  private _triggerQueue: string[] = [];
+
+  /** Fires when this state is entered. */
   private _entryAction?: TEntryActionFn<TContext>;
+  /** fires when this state attempts to exist.  Can be blocked. */
   private _exitAction?: TExitActionFn<TContext>;
 
   /** A unique identifier for this state machine. */
@@ -58,9 +70,38 @@ export default class AsyncStateMachine<TContext = unknown> {
   /** The previous state of the machine; undefined if there is no previous state. */
   private _previousState?: AsyncState<TContext> = undefined;
 
+  /**
+   * Processes queued triggers sequentially while the state machine is busy.
+   * Internal triggers raised during entry/exit are enqueued and handled here.
+   */
+  private async _processTriggerQueue(): Promise<void> {
+    // Another processor is already running; nothing to do.
+    if (this._busy) {
+      return;
+    }
+
+    this._busy = true;
+    try {
+      while (this._triggerQueue.length > 0) {
+        const nextTriggerId = this._triggerQueue.shift()!;
+        await this._transitionHandler(nextTriggerId);
+      }
+    } finally {
+      this._busy = false;
+    }
+  }
+
   /** A unique identifier for this state machine. */
   public get name(): string {
     return this._name;
+  }
+
+  /**
+   * Flag that indicates the state machine is currently processing a transition.
+   * External triggers are blocked while busy.
+   */
+  public get busy(): boolean {
+    return this._busy;
   }
 
   /** An identifier for this state machine. Not guaranteed unique. Format is kebab case and derived from the state machine's name. */
@@ -262,9 +303,12 @@ export default class AsyncStateMachine<TContext = unknown> {
    * @param restart An optional flag that indicates the state machine should be restarted after reset.
    */
   public async reset(restart = false): Promise<void> {
+    if (this._busy) {
+      this.throwError('The state machine is busy.  Cannot reset.');
+    }
+    this._triggerQueue = [];
     this._previousState = undefined;
     this._currentState = undefined;
-    this._queue = Promise.resolve();
     if (restart) {
       await this.start(this._startState);
     }
@@ -288,9 +332,9 @@ export default class AsyncStateMachine<TContext = unknown> {
    * Emits a new trigger message which causes the state machine to transition to a new state.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Tells the system to send a global transition rather than a state-specific transition.
+   * @param internal Indicates whether this trigger originates from within a state (entry/exit).
    */
-
-  public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
+  public async trigger(triggerId: string, sendGlobal = false, internal = false): Promise<void> {
     if (!this.started) {
       this.throwError('Cannot trigger if the machine has not started.', triggerId);
     }
@@ -298,14 +342,24 @@ export default class AsyncStateMachine<TContext = unknown> {
       this.throwError('Cannot trigger if the machine has completed.', triggerId);
     }
 
-    try {
-      await this._queue;
-      if (!sendGlobal && this._currentState) {
-        triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
-      }
-      return this._transitionHandler(triggerId);
-    } catch (error) {
-      this._queue = Promise.reject(error as Error);
+    // External callers must respect the busy flag.
+    if (this._busy && !internal) {
+      this.throwError('State Machine is busy.', triggerId);
     }
+
+    // Compute the local trigger id relative to the current state unless this is a global trigger.
+    if (!sendGlobal && this._currentState) {
+      triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
+    }
+
+    // If we're already busy and this is an internal trigger, just enqueue it.
+    if (this._busy && internal) {
+      this._triggerQueue.push(triggerId);
+      return;
+    }
+
+    // Not busy: enqueue this trigger and start the processor.
+    this._triggerQueue.push(triggerId);
+    return this._processTriggerQueue();
   }
 }
