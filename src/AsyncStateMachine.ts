@@ -3,7 +3,7 @@
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  */
 
-import AsyncState, { TEntryActionFn, TExitActionFn } from './AsyncState';
+import AsyncState, { TEntryActionAsyncFn, TExitActionAsyncFn } from './AsyncState';
 import AsyncTransition from './AsyncTransition';
 import kebabCase from 'lodash-es/kebabCase';
 import StateMachineError from './StateMachineError';
@@ -23,8 +23,8 @@ export default class AsyncStateMachine<TContext = unknown> {
   public constructor(
     name: string,
     context?: TContext,
-    entryAction?: TEntryActionFn<TContext>,
-    exitAction?: TExitActionFn<TContext>
+    entryAction?: TEntryActionAsyncFn<TContext>,
+    exitAction?: TExitActionAsyncFn<TContext>
   ) {
     this._name = name;
     this._context = context;
@@ -45,10 +45,10 @@ export default class AsyncStateMachine<TContext = unknown> {
   private _triggerQueue: string[] = [];
 
   /** Fires when this state is entered. */
-  private _entryAction?: TEntryActionFn<TContext>;
+  private _entryAction?: TEntryActionAsyncFn<TContext>;
 
   /** Fires when this state attempts to exit. Can be blocked. */
-  private _exitAction?: TExitActionFn<TContext>;
+  private _exitAction?: TExitActionAsyncFn<TContext>;
 
   /** A unique identifier for this state machine. */
   private _name: string;
@@ -243,8 +243,8 @@ export default class AsyncStateMachine<TContext = unknown> {
   public createState(
     name: string,
     isComplete = false,
-    entryAction?: TEntryActionFn<TContext>,
-    exitAction?: TExitActionFn<TContext>
+    entryAction?: TEntryActionAsyncFn<TContext>,
+    exitAction?: TExitActionAsyncFn<TContext>
   ): AsyncState<TContext> {
     const state = new AsyncState(this, name, isComplete);
     state.entryAction = entryAction;
@@ -305,7 +305,7 @@ export default class AsyncStateMachine<TContext = unknown> {
    */
   public async reset(restart = false): Promise<void> {
     if (this._busy) {
-      this.throwError('The state machine is busy.  Cannot reset.');
+      this.throwError('The state machine is busy. Cannot reset.');
     }
     this._triggerQueue = [];
     this._previousState = undefined;

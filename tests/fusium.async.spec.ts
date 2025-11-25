@@ -2,7 +2,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 import { AsyncState, AsyncStateMachine, AsyncTransition } from '../src/index';
-import { TEntryActionFn, TExitActionFn } from '../src/AsyncState';
+import { TEntryActionAsyncFn, TExitActionAsyncFn } from '../src/AsyncState';
 
 function _timeout(timeout = 100): Promise<void> {
   return new Promise((resolve) => {
@@ -250,13 +250,13 @@ describe('test the state machine', () => {
       testExit: 'test456'
     };
 
-    const entryAction: TEntryActionFn<ITestContext> = async (state, ctx): Promise<void> => {
+    const entryAction: TEntryActionAsyncFn<ITestContext> = async (state, ctx): Promise<void> => {
       await _timeout();
       expect(ctx).toBeDefined();
       expect(ctx?.testEntry).toEqual('test123');
     };
 
-    const exitAction: TExitActionFn<ITestContext> = async (state, ctx): Promise<boolean> => {
+    const exitAction: TExitActionAsyncFn<ITestContext> = async (state, ctx): Promise<boolean> => {
       await _timeout();
       expect(ctx).toBeDefined();
       expect(ctx?.testExit).toEqual('test456');
@@ -472,16 +472,138 @@ describe('test the state machine', () => {
     });
   });
 
+  it('should reject when triggering after the async machine has completed', async () => {
+    const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    const s1: AsyncState = stateMachine.createState('start', false);
+    const s2: AsyncState = stateMachine.createState('end', true);
+
+    s1.addTransition('finish', s2);
+
+    await stateMachine.start(s1);
+    await stateMachine.trigger('finish');
+
+    await expect(stateMachine.trigger('finish')).rejects.toThrow(
+      'State Machine (my first state machine) - Cannot trigger if the machine has completed.'
+    );
+  });
+
+  it('should throw when adding an async state after the machine has started', async () => {
+    const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    const start: AsyncState = stateMachine.createState('start', false);
+
+    await stateMachine.start(start);
+
+    const another: AsyncState = new AsyncState(stateMachine, 'another');
+
+    expect(() => {
+      stateMachine.addState(another);
+    }).toThrow(
+      'State Machine (my first state machine) - Cannot add a state once the machine has started.'
+    );
+  });
+
+  it('should throw when adding a global async transition after the machine has started', async () => {
+    const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    const s1: AsyncState = stateMachine.createState('start', false);
+    const s2: AsyncState = stateMachine.createState('end', true);
+
+    await stateMachine.start(s1);
+
+    expect(() => {
+      stateMachine.addGlobalTransition('goEnd', s2);
+    }).toThrow(
+      'State Machine (my first state machine) - Cannot add a transition once the machine has started.'
+    );
+  });
+
+  it('should reject when the provided start state is not part of the async state machine', async () => {
+    const machineA: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    // Ensure machineA has at least one state so we don’t hit the “no states” error
+    machineA.createState('local state', false);
+
+    const machineB: AsyncStateMachine = new AsyncStateMachine('other machine');
+    const foreignStart: AsyncState = machineB.createState('foreignStart', false);
+
+    await expect(machineA.start(foreignStart)).rejects.toThrow(
+      'State Machine (my first state machine) - Start state (foreignStart) is not part of this machine.'
+    );
+  });
+
+  it('should throw when adding duplicate async transitions from the same state', () => {
+    const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    const s1: AsyncState = stateMachine.createState('my first state', false);
+    const s2: AsyncState = stateMachine.createState('my second state', true);
+
+    s1.addTransition('goEnd', s2);
+
+    expect(() => {
+      s1.addTransition('goEnd', s2);
+    }).toThrow(
+      'State Machine (my first state machine) - Transition exists: my-first-state:go-end.'
+    );
+  });
+
+  it('should reject reset while the async state machine is busy', async () => {
+    const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    const s1: AsyncState = stateMachine.createState('my first state', false);
+    const s2: AsyncState = stateMachine.createState('my second state', true);
+
+    s1.addTransition('next', s2);
+
+    await stateMachine.start(s1);
+
+    const firstTriggerPromise = stateMachine.trigger('next');
+
+    await expect(stateMachine.reset()).rejects.toThrow(
+      'State Machine (my first state machine) - The state machine is busy. Cannot reset.'
+    );
+
+    await firstTriggerPromise;
+  });
+
+  it('should reject external triggers while the async state machine is busy', async () => {
+    const stateMachine: AsyncStateMachine = new AsyncStateMachine('my first state machine');
+    const s1: AsyncState = stateMachine.createState('state one', false); // not complete
+    const s2: AsyncState = stateMachine.createState('state two', false); // also not complete
+
+    s1.addTransition('next', s2);
+
+    // Make s2's entryAction "long running" so the machine stays busy
+    let resolveEntry: (() => void) | undefined;
+    s2.entryAction = async (): Promise<void> => {
+      await new Promise<void>((resolve) => {
+        resolveEntry = resolve;
+      });
+    };
+
+    await stateMachine.start(s1);
+
+    // Kick off the transition to s2, which will block in entryAction
+    const firstTriggerPromise = stateMachine.trigger('next');
+
+    // Allow the async machinery to advance into entryAction
+    await Promise.resolve();
+
+    // While entryAction is still pending, the machine is busy but NOT complete
+    await expect(stateMachine.trigger('other')).rejects.toThrow(
+      'State Machine (my first state machine) - State Machine is busy.'
+    );
+
+    // Clean up: let the first trigger finish so the test doesn’t leak a dangling promise
+    resolveEntry?.();
+    await firstTriggerPromise;
+  });
+
   it('should call state machine callbacks during transitions', async () => {
     let entryCount = 0;
     let exitCount = 0;
     const STATE1_NAME = 'state1';
     const STATE2_NAME = 'state2';
 
-    const onEntry: TEntryActionFn = async (): Promise<void> => {
+    const onEntry: TEntryActionAsyncFn = async (): Promise<void> => {
       entryCount += 1;
     };
-    const onExit: TExitActionFn = async (): Promise<boolean> => {
+    const onExit: TExitActionAsyncFn = async (): Promise<boolean> => {
       exitCount += 1;
       return true;
     };

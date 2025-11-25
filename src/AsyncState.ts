@@ -7,11 +7,11 @@ import kebabCase from 'lodash-es/kebabCase';
 import type AsyncStateMachine from './AsyncStateMachine';
 import AsyncTransition from './AsyncTransition';
 
-export type TEntryActionFn<TContext = unknown> = (
+export type TEntryActionAsyncFn<TContext = unknown> = (
   state: AsyncState<TContext>,
   context?: TContext
 ) => Promise<void>;
-export type TExitActionFn<TContext = unknown> = (
+export type TExitActionAsyncFn<TContext = unknown> = (
   state: AsyncState<TContext>,
   context?: TContext
 ) => Promise<boolean>;
@@ -60,10 +60,10 @@ export default class AsyncState<TContext = unknown> {
   }
 
   /** An optional action that is invoked whenever the state machine enters this state. */
-  public entryAction?: TEntryActionFn<TContext>;
+  public entryAction?: TEntryActionAsyncFn<TContext>;
 
   /** An optional action that is invoked whenever the state machine exits this state. */
-  public exitAction?: TExitActionFn<TContext>;
+  public exitAction?: TExitActionAsyncFn<TContext>;
 
   //-----------------------------------------------------------------------
   // METHODS
