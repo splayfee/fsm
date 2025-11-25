@@ -13,6 +13,59 @@ describe('test states', (): void => {
     );
   });
 
+  it('should throw when triggering a completed machine', () => {
+    const stateMachine: StateMachine = new StateMachine('completed sync machine');
+    const s1: State = stateMachine.createState('start', false);
+    const s2: State = stateMachine.createState('end', true);
+
+    s1.addTransition('finish', s2);
+
+    stateMachine.start(s1);
+    stateMachine.trigger('finish');
+
+    // Second trigger after completion should fail
+    expect(() => {
+      return stateMachine.trigger('finish');
+    }).toThrow('Cannot trigger if the machine has completed.');
+  });
+
+  it('should reject adding a state after the machine has started', () => {
+    const stateMachine: StateMachine = new StateMachine('no new states');
+    const start: State = stateMachine.createState('start', false);
+
+    stateMachine.start(start);
+
+    const another: State = new State(stateMachine, 'another');
+
+    expect(() => {
+      return stateMachine.addState(another);
+    }).toThrow('Cannot add a state once the machine has started.');
+  });
+
+  it('should reject adding a global transition after the machine has started', () => {
+    const stateMachine: StateMachine = new StateMachine('no new transitions');
+    const s1: State = stateMachine.createState('start', false);
+    const s2: State = stateMachine.createState('end', true);
+
+    stateMachine.start(s1);
+
+    expect(() => {
+      stateMachine.addGlobalTransition('goEnd', s2);
+    }).toThrow('Cannot add a transition once the machine has started.');
+  });
+
+  it('should reject duplicate transitions from the same state', () => {
+    const stateMachine: StateMachine = new StateMachine('duplicate transition');
+    const s1: State = stateMachine.createState('start', false);
+    const s2: State = stateMachine.createState('end', true);
+
+    s1.addTransition('goEnd', s2);
+
+    expect(() => {
+      s1.addTransition('goEnd', s2);
+    }).toThrow('Transition exists:');
+  });
+
   it('should throw an error when starting a machine that has already started', (): void => {
     const stateMachine: StateMachine = new StateMachine('my first state machine');
     const state1: State = stateMachine.createState('my first state');
@@ -105,6 +158,20 @@ describe('test states', (): void => {
     stateMachine.reset(true);
     expect(stateMachine.currentState).toEqual(state1);
     expect(stateMachine.previousState).toEqual(undefined);
+  });
+
+  it('should throw if the provided start state is not part of the machine', () => {
+    const machineA = new StateMachine('A');
+    machineA.createState('startA');
+
+    // Create a completely separate machine and state
+    const machineB = new StateMachine('B');
+    const foreignState = machineB.createState('foreignStart');
+
+    // Calling start() with a state from a different machine should throw
+    expect(() => {
+      return machineA.start(foreignState);
+    }).toThrow('Start state (foreignStart) is not part of this machine.');
   });
 
   it('Should reset the state but not restart it', (): void => {

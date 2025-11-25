@@ -152,7 +152,8 @@ const { AsyncState, AsyncStateMachine } = require('@edium/fsm');
 
 ```ts
 const entryAction = async (state, context) => {
-  await state.trigger('next');
+  // Safe: internal triggers are queued if the machine is already busy.
+  await state.triggerInternal('next');
 };
 
 const exitAction = async (state, context) => {
@@ -162,9 +163,9 @@ const exitAction = async (state, context) => {
 const decideAction = async (state, context) => {
   const index = context.randomize();
   if (index === 0) {
-    await state.trigger('gotoThree');
+    await state.triggerInternal('gotoThree');
   } else if (index === 1) {
-    await state.trigger('gotoFour');
+    await state.triggerInternal('gotoFour');
   }
 };
 
@@ -227,7 +228,8 @@ parent.createState('run-sub', false, () => {
 const entry = async (s, ctx) => {
   const data = await fetch('/api/data').then((r) => r.json());
   ctx.data = data;
-  await s.trigger('next');
+  // Safe: internal triggers are queued if the machine is already busy.
+  await s.triggerInternal('next');
 };
 ```
 

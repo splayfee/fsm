@@ -32,7 +32,10 @@ export default class StateMachine<TContext = unknown> {
     this._exitAction = exitAction;
   }
 
+  /** Fires when this state is entered. */
   private _entryAction?: TEntryActionFn<TContext>;
+
+  /** Fires when this state attempts to exit. Can be blocked. */
   private _exitAction?: TExitActionFn<TContext>;
 
   /** A unique identifier for this state machine. */

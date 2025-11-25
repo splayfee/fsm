@@ -46,7 +46,8 @@ export default class AsyncStateMachine<TContext = unknown> {
 
   /** Fires when this state is entered. */
   private _entryAction?: TEntryActionFn<TContext>;
-  /** fires when this state attempts to exist.  Can be blocked. */
+
+  /** Fires when this state attempts to exit. Can be blocked. */
   private _exitAction?: TExitActionFn<TContext>;
 
   /** A unique identifier for this state machine. */
@@ -332,9 +333,15 @@ export default class AsyncStateMachine<TContext = unknown> {
    * Emits a new trigger message which causes the state machine to transition to a new state.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Tells the system to send a global transition rather than a state-specific transition.
-   * @param internal Indicates whether this trigger originates from within a state (entry/exit).
    */
-  public async trigger(triggerId: string, sendGlobal = false, internal = false): Promise<void> {
+  public async trigger(triggerId: string, sendGlobal?: boolean): Promise<void>;
+  public async trigger(
+    triggerId: string,
+    sendGlobal: boolean | undefined,
+    internal: boolean
+  ): Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  public async trigger(triggerId: string, sendGlobal = false, _internal = false): Promise<void> {
     if (!this.started) {
       this.throwError('Cannot trigger if the machine has not started.', triggerId);
     }
@@ -343,7 +350,7 @@ export default class AsyncStateMachine<TContext = unknown> {
     }
 
     // External callers must respect the busy flag.
-    if (this._busy && !internal) {
+    if (this._busy && !_internal) {
       this.throwError('State Machine is busy.', triggerId);
     }
 
@@ -353,7 +360,7 @@ export default class AsyncStateMachine<TContext = unknown> {
     }
 
     // If we're already busy and this is an internal trigger, just enqueue it.
-    if (this._busy && internal) {
+    if (this._busy && _internal) {
       this._triggerQueue.push(triggerId);
       return;
     }
