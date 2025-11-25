@@ -6,7 +6,7 @@
 
 Version **3.x** introduces a fully **asynchronous state machine**, useful for client/server apps, workflow systems, async game logic, and anything requiring `await` inside state actions.
 
-> **Important**
+> **IMPORTANT**
 > Version 3.x is **100% backward compatible** with earlier versions.
 > The original synchronous API is unchanged — the new async API is optional.
 
@@ -72,12 +72,9 @@ pnpm install @edium/fsm
 
 ## Tests & Coverage
 
-The codebase is fully unit-tested with near-100% coverage.
-All code is linted and type-checked.
+The codebase is fully unit-tested with near-100% coverage. All code is linted, prettified and type-checked.
 
 ---
-
-## Examples
 
 # Synchronous Machine
 
@@ -137,6 +134,11 @@ stateMachine.start(s1);
 ---
 
 # Asynchronous Machine
+
+This example implements a safe asynchronouse state machine that does not allow the user to directly change the state during running work.
+
+> **IMPORTANT**
+> Do not call **asyncStateMachine.trigger()** from inside entry/exit actions. Instead you must use **state.triggerInternal()**. Internal triggers are queued and processed safely once the current transition finishes, whereas external triggers will generate an error.
 
 ### Importing
 
@@ -232,6 +234,17 @@ const entry = async (s, ctx) => {
   await s.triggerInternal('next');
 };
 ```
+
+### 5. Error Handling
+
+All internal errors are thrown as `StateMachineError`:
+
+- `error.message` – Prefixed message: `State Machine (My Machine) - …`
+- `error.machine` – State machine name
+- `error.state` – Current state name (if any)
+- `error.trigger` – Trigger id (if any)
+
+You can `instanceof StateMachineError` to distinguish FSM errors from other errors.
 
 ---
 
