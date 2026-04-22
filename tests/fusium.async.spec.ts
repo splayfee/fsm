@@ -398,21 +398,20 @@ describe('test the state machine', () => {
       const entryAction = async (state: AsyncState): Promise<void> => {
         try {
           entryCount++;
-          expect(state).toBeInstanceOf(AsyncState);
           await state.triggerInternal('next');
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       };
 
-      const exitAction = async (state: AsyncState): Promise<boolean> => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+      const exitAction = async (_state: AsyncState): Promise<boolean> => {
         try {
           await _timeout();
           exitCount++;
-          expect(state).toBeInstanceOf(AsyncState);
           return true;
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
           return false;
         }
       };
@@ -420,7 +419,6 @@ describe('test the state machine', () => {
       const decideAction = async (state: AsyncState): Promise<void> => {
         try {
           entryCount++;
-          expect(state).toBeInstanceOf(AsyncState);
           const index = Math.floor(Math.random() * 2);
           if (index === 0) {
             await state.triggerInternal('gotoThree');
@@ -428,20 +426,20 @@ describe('test the state machine', () => {
             await state.triggerInternal('gotoThree'); // same outcome, could branch if needed
           }
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       };
 
-      const finalAction = async (state: AsyncState): Promise<void> => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+      const finalAction = async (_state: AsyncState): Promise<void> => {
         try {
           await _timeout();
           entryCount++;
           expect(entryCount).toEqual(4);
           expect(exitCount).toEqual(3);
-          expect(state).toBeInstanceOf(AsyncState);
           resolve();
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       };
 

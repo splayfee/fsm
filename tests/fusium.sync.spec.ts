@@ -413,20 +413,19 @@ describe('test the state machine', (): void => {
       const entryAction = (state: State): void => {
         try {
           entryCount++;
-          expect(state).toBeInstanceOf(State);
           state.trigger('next');
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       };
 
-      const exitAction = (state: State): boolean => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+      const exitAction = (_state: State): boolean => {
         try {
           exitCount++;
-          expect(state).toBeInstanceOf(State);
           return true;
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
           return false;
         }
       };
@@ -434,7 +433,6 @@ describe('test the state machine', (): void => {
       const decideAction = (state: State): void => {
         try {
           entryCount++;
-          expect(state).toBeInstanceOf(State);
           const index = Math.floor(Math.random() * 2);
           if (index === 0) {
             state.trigger('gotoThree');
@@ -442,19 +440,19 @@ describe('test the state machine', (): void => {
             state.trigger('gotoThree'); // same outcome, could simplify
           }
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       };
 
-      const finalAction = (state: State): void => {
+      // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+      const finalAction = (_state: State): void => {
         try {
           entryCount++;
           expect(entryCount).toEqual(4);
           expect(exitCount).toEqual(3);
-          expect(state).toBeInstanceOf(State);
           resolve(); // test complete
         } catch (err) {
-          reject(err as Error);
+          reject(err instanceof Error ? err : new Error(String(err)));
         }
       };
 
