@@ -1,6 +1,6 @@
 {
   "name": "@edium/fsm",
-  "version": "3.0.2",
+  "version": "4.0.0",
   "description": "Simple finite state machine framework that can be used with client or server.",
   "repository": {
     "type": "git",
@@ -11,7 +11,7 @@
     "email": "david@edium.com"
   },
   "docs": {
-    "url": "https://github.com/splayfee/fsm/blob/master/README.md"
+    "url": "https://github.com/splayfee/fsm/blob/main/README.md"
   },
   "license": "MIT",
   "scripts": {
@@ -21,7 +21,8 @@
     "lint": "eslint .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit -p tsconfig.eslint.json",
+    "prepublishOnly": "pnpm type-check && pnpm lint && pnpm test && pnpm build"
   },
   "engines": {
     "node": ">=18"
@@ -32,15 +33,21 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "default": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE-MIT",
+    "CHANGELOG.md"
   ],
   "publishConfig": {
     "access": "public"
@@ -58,23 +65,19 @@
   ],
   "homepage": "https://github.com/splayfee/fsm",
   "author": "David LaTour <david@edium.com>",
-  "dependencies": {
-    "lodash-es": "^4.18.1"
-  },
+  "packageManager": "pnpm@12.21.0+sha512.66fd8278ee28935ce951792d34367ff3af5c432a2756445823029533835b8da529bbe0be5130afd56ed0713fb8789e47bad82d93bd5ae2fe54b15562d6276ef0",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^26.6.6",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/coverage-v8": "^5.1.0",
-    "cross-env": "^10.1.0",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
+    "lodash-es": "^4.18.1",
     "prettier": "^3.10.1",
     "tsup": "^9.0.0",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0"
-  },
-  "packageManager": "pnpm@12.21.0+sha512.66fd8278ee28935ce951792d34367ff3af5c432a2756445823029533835b8da529bbe0be5130afd56ed0713fb8789e47bad82d93bd5ae2fe54b15562d6276ef0"
+  }
 }

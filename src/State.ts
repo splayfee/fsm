@@ -3,7 +3,7 @@
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  */
 
-import kebabCase from 'lodash-es/kebabCase';
+import kebabCase from './kebabCase';
 import type StateMachine from './StateMachine';
 import Transition from './Transition';
 
@@ -36,6 +36,19 @@ export default class State<TContext = unknown> {
 
   /** The state machine this state is associated with. */
   private _stateMachine: StateMachine<TContext>;
+
+  /** The state machine this state is associated with. */
+  public get stateMachine(): StateMachine<TContext> {
+    return this._stateMachine;
+  }
+
+  /**
+   * The local transitions registered on this state, keyed by their local trigger id
+   * (`<state id>:<kebab-cased trigger id>`).
+   */
+  public get transitions(): ReadonlyMap<string, Transition<TContext>> {
+    return this._transitions;
+  }
 
   private _name: string;
   /**
@@ -84,8 +97,20 @@ export default class State<TContext = unknown> {
    */
   public addTransition(triggerId: string, targetState: State<TContext>): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
+    if (this._stateMachine.started) {
+      this._stateMachine.throwError(
+        'Cannot add a transition once the machine has started.',
+        localTriggerId
+      );
+    }
     if (this._transitions.has(localTriggerId)) {
       this._stateMachine.throwError(`Transition exists: ${localTriggerId}.`, localTriggerId);
+    }
+    if (targetState.stateMachine !== this._stateMachine) {
+      this._stateMachine.throwError(
+        `Target state (${targetState.name}) belongs to a different state machine (${targetState.stateMachine.name}).`,
+        localTriggerId
+      );
     }
     this._transitions.set(localTriggerId, new Transition<TContext>(localTriggerId, targetState));
   }

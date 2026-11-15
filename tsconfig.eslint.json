@@ -1,5 +1,9 @@
 {
-  // extend your base config so you don't have to redefine your compilerOptions
+  // Extends the base config so source and tests are linted and type-checked with the same options.
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
   "include": ["src/**/*.ts", "tests/**/*.ts"]
 }

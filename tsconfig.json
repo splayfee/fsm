@@ -16,14 +16,9 @@
     "sourceMap": false,
     "resolveJsonModule": true,
     "strictNullChecks": true,
-    "types": ["node"],
+    "types": [],
     "strict": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "./node_modules",
-    "./node_modules/*",
-    "./node_modules/@types/node/index.d.ts"
-  ]
+  "exclude": ["node_modules", "./node_modules", "./node_modules/*"]
 }

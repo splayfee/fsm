@@ -6,7 +6,20 @@
 import State, { TEntryActionFn, TExitActionFn } from './State';
 import StateMachineError from './StateMachineError';
 import Transition from './Transition';
-import kebabCase from 'lodash-es/kebabCase';
+import kebabCase from './kebabCase';
+import { IValidationResult, toDot, toMermaid, validateGraph } from './graph';
+
+/** Describes a completed state change. Passed to every `onTransition` listener. */
+export interface ITransitionEvent<TContext = unknown> {
+  /** The state that was exited, or undefined when the machine was just started. */
+  from?: State<TContext>;
+  /** The state that was entered. */
+  to: State<TContext>;
+  /** The trigger id as it was passed to `trigger()`; undefined for `start()` and `gotoPrevious()`. */
+  trigger?: string;
+}
+
+export type TTransitionListenerFn<TContext = unknown> = (event: ITransitionEvent<TContext>) => void;
 
 /**
  * This class defines a new state machine. The state machine takes in
@@ -50,6 +63,18 @@ export default class StateMachine<TContext = unknown> {
   /** A collection of all possible states for this state machine. */
   private _states = new Map<string, State<TContext>>();
 
+  /** Listeners notified after every state change. */
+  private _transitionListeners = new Set<TTransitionListenerFn<TContext>>();
+
+  /** Flag that indicates the state machine is currently processing a transition. */
+  private _busy = false;
+
+  /**
+   * Work waiting to run, in order. Anything requested from inside a state action (a trigger,
+   * `gotoPrevious()` or `reset()`) is queued here and runs once the current transition completes.
+   */
+  private _queue: (() => void)[] = [];
+
   /** The state that should be entered when the machine is first started. */
   private _startState?: State<TContext> = undefined;
 
@@ -59,9 +84,53 @@ export default class StateMachine<TContext = unknown> {
   /** The previous state of the machine; undefined if there is no previous state. */
   private _previousState?: State<TContext> = undefined;
 
+  /**
+   * Runs a job, then any jobs queued while it ran. Calls made from inside a state action land here
+   * while busy and are queued instead of running on the same call stack, so every transition
+   * completes (exit, state change, entry) before the next one starts.
+   * @param job The work to run.
+   */
+  private _run(job: () => void): void {
+    this._queue.push(job);
+    if (this._busy) {
+      return;
+    }
+
+    this._busy = true;
+    try {
+      while (this._queue.length > 0) {
+        this._queue.shift()!();
+      }
+    } catch (error) {
+      // Drop anything queued behind the failed job so it can't fire on a later, unrelated trigger.
+      this._queue = [];
+      throw error;
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  /**
+   * Throws if the machine cannot accept a trigger because it has not started or has completed.
+   * @param triggerId The trigger id, for error reporting.
+   */
+  private _assertCanTrigger(triggerId: string): void {
+    if (!this.started) {
+      this.throwError('Cannot trigger if the machine has not started.', triggerId);
+    }
+    if (this.isComplete) {
+      this.throwError('Cannot trigger if the machine has completed.', triggerId);
+    }
+  }
+
   /** A unique identifier for this state machine. */
   public get name(): string {
     return this._name;
+  }
+
+  /** Flag that indicates the state machine is currently processing a transition. */
+  public get busy(): boolean {
+    return this._busy;
   }
 
   /** An identifier for this state machine. Not guaranteed unique. Format is kebab case and derived from the state machine's name. */
@@ -100,6 +169,11 @@ export default class StateMachine<TContext = unknown> {
     return this._states;
   }
 
+  /** Returns the global transitions registered with this state machine, keyed by kebab-cased trigger id. */
+  public get globalTransitions(): ReadonlyMap<string, Transition<TContext>> {
+    return this._transitions;
+  }
+
   // ----------------------------------------------------------
   // METHODS
   // ----------------------------------------------------------
@@ -107,8 +181,9 @@ export default class StateMachine<TContext = unknown> {
   /**
    * This method changes the state of the state machine.
    * @param newState The new state of the machine.
+   * @param trigger The trigger id that caused the change, if any.
    */
-  private _changeState(newState: State<TContext>): void {
+  private _changeState(newState: State<TContext>, trigger?: string): void {
     let allowExit = true;
 
     // Throw an error if the machine is already in the requested state.
@@ -116,19 +191,27 @@ export default class StateMachine<TContext = unknown> {
       this.throwError(`Already in state: currentState: ${this._currentState.name}.`);
     }
 
-    // Perform an exit action if it exists and record whether to allow the state change.
+    // Perform exit actions if they exist. Both run; either one can block the state change.
     if (this._currentState?.exitAction) {
       allowExit = this._currentState.exitAction(this._currentState, this._context);
     }
 
     if (this._currentState && this._exitAction) {
-      allowExit = this._exitAction(this._currentState, this._context);
+      const machineAllowExit = this._exitAction(this._currentState, this._context);
+      allowExit = allowExit && machineAllowExit;
     }
 
     // The current state can cancel the state change request if necessary.
     if (allowExit) {
+      const from = this._currentState;
       this._previousState = this._currentState;
       this._currentState = newState;
+
+      // Notify listeners before entry actions so that transitions triggered from inside an
+      // entry action are reported in the order they happen.
+      for (const listener of this._transitionListeners) {
+        listener({ from, to: newState, trigger });
+      }
 
       // Perform an entrance action if it exists
       if (this._currentState?.entryAction) {
@@ -141,21 +224,40 @@ export default class StateMachine<TContext = unknown> {
   }
 
   /**
-   * This method handles all transitions from state to state. It receives a message used to determine which transition to execute.
+   * Converts a trigger id into the key used to look up the transition.
    * @param triggerId A unique identifier for the trigger.
+   * @param sendGlobal Whether the trigger targets a global transition.
    */
-  private _transitionHandler(triggerId: string): void {
-    let transition: Transition<TContext> | undefined = this._currentState?.getTransition(triggerId);
-
-    // Look for a global state transition
-    if (!transition) {
-      transition = this._transitions.get(kebabCase(triggerId));
+  private _resolveTriggerId(triggerId: string, sendGlobal: boolean): string {
+    if (!sendGlobal && this._currentState) {
+      return `${this._currentState.id}:${kebabCase(triggerId)}`;
     }
+    return triggerId;
+  }
 
+  /**
+   * Finds the transition for a resolved trigger id: a local transition on the current state
+   * first, then a global transition.
+   * @param resolvedTriggerId A trigger id returned by `_resolveTriggerId`.
+   */
+  private _findTransition(resolvedTriggerId: string): Transition<TContext> | undefined {
+    return (
+      this._currentState?.getTransition(resolvedTriggerId) ??
+      this._transitions.get(kebabCase(resolvedTriggerId))
+    );
+  }
+
+  /**
+   * This method handles all transitions from state to state. It receives a message used to determine which transition to execute.
+   * @param resolvedTriggerId The trigger id used for lookup.
+   * @param triggerId The trigger id as passed by the caller.
+   */
+  private _transitionHandler(resolvedTriggerId: string, triggerId: string): void {
+    const transition = this._findTransition(resolvedTriggerId);
     if (!transition) {
-      this.throwError(`Invalid Transition - triggerId: ${triggerId}.`, triggerId);
+      this.throwError(`Invalid Transition - triggerId: ${resolvedTriggerId}.`, resolvedTriggerId);
     } else {
-      this._changeState(transition.targetState);
+      this._changeState(transition.targetState, triggerId);
     }
   }
 
@@ -184,7 +286,28 @@ export default class StateMachine<TContext = unknown> {
     if (this.started) {
       this.throwError('Cannot add a transition once the machine has started.');
     }
+    if (targetState.stateMachine !== this) {
+      this.throwError(
+        `Target state (${targetState.name}) belongs to a different state machine (${targetState.stateMachine.name}).`,
+        triggerId
+      );
+    }
     this._transitions.set(kebabCase(triggerId), new Transition<TContext>(triggerId, targetState));
+  }
+
+  /**
+   * Returns true if `trigger()` would find a valid transition for this trigger right now.
+   * Never throws. Exit actions are not run, so a transition reported as valid can still be
+   * blocked by an exit action.
+   * @param triggerId A unique identifier for the trigger.
+   * @param sendGlobal Whether to check for a global transition rather than a state-specific transition.
+   */
+  public canTrigger(triggerId: string, sendGlobal = false): boolean {
+    if (!this.started || this.isComplete) {
+      return false;
+    }
+    const transition = this._findTransition(this._resolveTriggerId(triggerId, sendGlobal));
+    return transition !== undefined && transition.targetState !== this._currentState;
   }
 
   /**
@@ -208,11 +331,16 @@ export default class StateMachine<TContext = unknown> {
     return state;
   }
 
-  /** This method returns the state machine to the previous state if there is one. */
+  /**
+   * This method returns the state machine to the previous state if there is one.
+   * Called from inside a state action, it runs once the current transition completes.
+   */
   public gotoPrevious(): void {
-    if (this._previousState) {
-      this._changeState(this._previousState);
-    }
+    this._run((): void => {
+      if (this._previousState) {
+        this._changeState(this._previousState);
+      }
+    });
   }
 
   /**
@@ -223,6 +351,27 @@ export default class StateMachine<TContext = unknown> {
    */
   public getStateById(id: string): State<TContext> | undefined {
     return this._states.get(kebabCase(id));
+  }
+
+  /**
+   * Registers a listener that is called after every state change, once exit actions have allowed
+   * it and before entry actions run.
+   * @param listener The listener to call.
+   * @returns A function that removes the listener.
+   */
+  public onTransition(listener: TTransitionListenerFn<TContext>): () => void {
+    this._transitionListeners.add(listener);
+    return (): void => {
+      this.offTransition(listener);
+    };
+  }
+
+  /**
+   * Removes a listener registered with `onTransition`.
+   * @param listener The listener to remove.
+   */
+  public offTransition(listener: TTransitionListenerFn<TContext>): void {
+    this._transitionListeners.delete(listener);
   }
 
   /**
@@ -250,20 +399,26 @@ export default class StateMachine<TContext = unknown> {
       this.throwError(`Start state (${startState.name}) is not part of this machine.`);
     }
 
-    this._startState = startState;
-    this._changeState(startState);
+    const initialState = startState;
+    this._startState = initialState;
+    this._run((): void => {
+      this._changeState(initialState);
+    });
   }
 
   /**
-   * Resets the state machine.
+   * Resets the state machine. Exit actions are not run.
    * @param restart An optional flag that indicates the state machine should be restarted after reset.
    */
   public reset(restart = false): void {
-    this._previousState = undefined;
-    this._currentState = undefined;
-    if (restart) {
-      this.start(this._startState);
-    }
+    // Called from inside a state action, the reset runs once the current transition completes.
+    this._run((): void => {
+      this._previousState = undefined;
+      this._currentState = undefined;
+      if (restart) {
+        this.start(this._startState);
+      }
+    });
   }
 
   /**
@@ -271,7 +426,7 @@ export default class StateMachine<TContext = unknown> {
    * @param message The message to be prefixed.
    * @param trigger Optional trigger.
    */
-  public throwError(message: string, trigger?: string): void {
+  public throwError(message: string, trigger?: string): never {
     throw new StateMachineError(
       this._name,
       `State Machine (${this._name}) - ${message}`,
@@ -281,21 +436,47 @@ export default class StateMachine<TContext = unknown> {
   }
 
   /**
+   * Checks the machine's structure without running it. Reports registered states that cannot be
+   * reached from the start state, non-complete states with no way out, and transitions that target
+   * states never added to this machine.
+   * @param startState The state to analyze from. Defaults to the start state if the machine has
+   * started, otherwise the first state that was added.
+   */
+  public validate(startState?: State<TContext>): IValidationResult {
+    return validateGraph(this, startState ?? this._startState);
+  }
+
+  /**
+   * Returns a Mermaid `stateDiagram-v2` definition of this machine.
+   * @param startState The state to mark as initial. Defaults as in `validate()`.
+   */
+  public toMermaid(startState?: State<TContext>): string {
+    return toMermaid(this, startState ?? this._startState);
+  }
+
+  /**
+   * Returns a Graphviz DOT definition of this machine.
+   * @param startState The state to mark as initial. Defaults as in `validate()`.
+   */
+  public toDot(startState?: State<TContext>): string {
+    return toDot(this, startState ?? this._startState);
+  }
+
+  /**
    * Emits a new trigger message which causes the state machine to transition to a new state.
+   * Called from inside a state action, the trigger is queued and runs once the current transition
+   * completes; the outermost call returns only after every queued trigger has run.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Tells the system to send a global transition rather than a state-specific transition.
    */
   public trigger(triggerId: string, sendGlobal = false): void {
-    if (!this.started) {
-      this.throwError('Cannot trigger if the machine has not started.', triggerId);
-    }
-    if (this.isComplete) {
-      this.throwError('Cannot trigger if the machine has completed.', triggerId);
-    }
-
-    if (!sendGlobal && this._currentState) {
-      triggerId = `${this._currentState.id}:${kebabCase(triggerId)}`;
-    }
-    this._transitionHandler(triggerId);
+    this._assertCanTrigger(triggerId);
+    this._run((): void => {
+      // Checked again when the trigger runs: an earlier queued job may have completed the machine.
+      this._assertCanTrigger(triggerId);
+      // Resolved when the trigger runs, so a trigger queued from an exit action applies to the
+      // state being entered.
+      this._transitionHandler(this._resolveTriggerId(triggerId, sendGlobal), triggerId);
+    });
   }
 }

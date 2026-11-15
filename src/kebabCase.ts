@@ -7,7 +7,7 @@
  * 4.17 / 4.18 (MIT License, Copyright OpenJS Foundation and other contributors).
  */
 
-/* eslint-disable no-control-regex, no-misleading-character-class */
+/* eslint-disable no-control-regex */
 
 /** Latin-1 Supplement and Latin Extended-A letters mapped to basic Latin letters, grouped by replacement. */
 const DEBURRED_GROUPS: [string, string][] = [

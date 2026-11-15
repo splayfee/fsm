@@ -3,9 +3,10 @@
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  */
 
-import kebabCase from 'lodash-es/kebabCase';
+import kebabCase from './kebabCase';
 import type AsyncStateMachine from './AsyncStateMachine';
 import AsyncTransition from './AsyncTransition';
+import { TRIGGER_INTERNAL } from './internal';
 
 export type TEntryActionAsyncFn<TContext = unknown> = (
   state: AsyncState<TContext>,
@@ -36,6 +37,19 @@ export default class AsyncState<TContext = unknown> {
 
   /** The state machine this state is associated with. */
   private _stateMachine: AsyncStateMachine<TContext>;
+
+  /** The state machine this state is associated with. */
+  public get stateMachine(): AsyncStateMachine<TContext> {
+    return this._stateMachine;
+  }
+
+  /**
+   * The local transitions registered on this state, keyed by their local trigger id
+   * (`<state id>:<kebab-cased trigger id>`).
+   */
+  public get transitions(): ReadonlyMap<string, AsyncTransition<TContext>> {
+    return this._transitions;
+  }
 
   private _name: string;
   /**
@@ -84,8 +98,20 @@ export default class AsyncState<TContext = unknown> {
    */
   public addTransition(triggerId: string, targetState: AsyncState<TContext>): void {
     const localTriggerId: string = this._getLocalTriggerId(triggerId);
+    if (this._stateMachine.started) {
+      this._stateMachine.throwError(
+        'Cannot add a transition once the machine has started.',
+        localTriggerId
+      );
+    }
     if (this._transitions.has(localTriggerId)) {
       this._stateMachine.throwError(`Transition exists: ${localTriggerId}.`, localTriggerId);
+    }
+    if (targetState.stateMachine !== this._stateMachine) {
+      this._stateMachine.throwError(
+        `Target state (${targetState.name}) belongs to a different state machine (${targetState.stateMachine.name}).`,
+        localTriggerId
+      );
     }
     this._transitions.set(
       localTriggerId,
@@ -100,27 +126,29 @@ export default class AsyncState<TContext = unknown> {
 
   /**
    * Triggers the state machine which will attempt to transition to a new state.
-   * This method is intended for callers outside of entry/exit that should
-   * respect the state machine's busy flag.
+   * Equivalent to `triggerInternal()`: called from inside a state action (while the machine is
+   * busy) the trigger is queued and runs once the current transition completes. Code outside the
+   * machine should call `machine.trigger()`, which rejects while the machine is busy.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Optional flag which tells the state machine to send a
    * global transition rather than a state-specific transition. Global transitions
    * can bypass local state transition rules.
    */
   public async trigger(triggerId: string, sendGlobal = false): Promise<void> {
-    return this._stateMachine.trigger(triggerId, sendGlobal);
+    return this._stateMachine[TRIGGER_INTERNAL](triggerId, sendGlobal);
   }
 
   /**
    * Triggers the state machine which will attempt to transition to a new state
    * from within this state (entry/exit). These triggers are considered
-   * *internal* and are allowed to be queued while the state machine is busy.
+   * *internal* and are queued while the state machine is busy; the queued trigger runs once
+   * the current transition completes.
    * @param triggerId A unique identifier for the trigger.
    * @param sendGlobal Optional flag which tells the state machine to send a
    * global transition rather than a state-specific transition. Global transitions
    * can bypass local state transition rules.
    */
   public async triggerInternal(triggerId: string, sendGlobal = false): Promise<void> {
-    return this._stateMachine.trigger(triggerId, sendGlobal, true);
+    return this._stateMachine[TRIGGER_INTERNAL](triggerId, sendGlobal);
   }
 }
