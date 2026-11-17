@@ -15,7 +15,10 @@ export interface IGraphState {
 export interface IGraph {
   readonly name: string;
   readonly states: ReadonlyMap<string, IGraphState>;
-  readonly globalTransitions: ReadonlyMap<string, { readonly targetState: IGraphState }>;
+  readonly globalTransitions: ReadonlyMap<
+    string,
+    { readonly targetState: IGraphState; readonly reenter?: boolean }
+  >;
 }
 
 /** The result of validating a state machine's structure. All lists contain state ids. */
@@ -125,7 +128,8 @@ function _collect(graph: IGraph): { nodes: IGraphState[]; edges: IEdge[] } {
   // Global transitions can fire from any state that is not complete.
   for (const [key, transition] of graph.globalTransitions) {
     for (const state of graph.states.values()) {
-      if (!state.isComplete && state !== transition.targetState) {
+      // A re-entering global transition also loops from its own target state.
+      if (!state.isComplete && (state !== transition.targetState || transition.reenter)) {
         edges.push({ from: state, to: transition.targetState, label: key, global: true });
       }
     }

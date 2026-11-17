@@ -4,6 +4,56 @@ All notable changes to `@edium/fsm` are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [4.1.0] - 2026-11-16
+
+A usability release based on feedback from using 4.0 in a rules engine and a UI interaction
+machine. Every change is opt-in and backwards-compatible: 4.0 code compiles and behaves the same.
+The one visible difference is a one-time console warning, described under **Added**.
+
+### Added
+
+- **Typed state and trigger ids.** `StateMachine<TContext, TStateId, TTriggerId>` (and the async
+  equivalents). With unions such as `'idle' | 'done'`, typos in `createState`, `addTransition`,
+  `addGlobalTransition`, `trigger`, `canTrigger`, `getStateById` and `restore` are compile errors.
+  `state.id`, `machine.states` keys and listener events are typed too. Both parameters default to
+  `string`.
+- **Explicit state ids.** `createState(name, { id, isComplete, entryAction, exitAction })`, and the
+  same options in the `State` / `AsyncState` constructors. An explicit id is used as-is (not
+  kebab-cased). The positional `createState(name, isComplete, entry, exit)` form still works.
+  `getStateById()` tries the exact id first, then the kebab-cased form.
+- **Warning when a derived id differs from its name**, such as `'My State'` stored as `'my-state'`.
+  It's logged once per machine, never when `NODE_ENV` is `production`, and never for states with an
+  explicit id. Turn it off with the `warnOnIdChange: false` machine option.
+- **Clearer global transitions.** `trigger(id, { global: true })` and `canTrigger(id, { global: true })`
+  work alongside the boolean, as do `state.trigger()` and `state.triggerInternal()`. The new
+  `globalFallback: true` machine option makes a plain `trigger(id)` fall back to the global
+  transition when no local transition matches. A local transition still wins.
+- **Opt-in self-transitions.** `addTransition(id, sameState, { reenter: true })` (also on
+  `addGlobalTransition`) runs exit actions, listeners and entry actions again instead of throwing
+  `Already in state`. `previousState` is left unchanged. `Transition.reenter` exposes the flag, and
+  diagrams draw re-entering global transitions as self-loops.
+- **`snapshot()` and `restore(snapshot, { runEntry? })`** on both machines. A snapshot is a plain
+  `{ stateId, previousStateId?, startStateId? }`. By default `restore()` doesn't run entry actions
+  or notify listeners. Unknown ids throw before anything changes.
+- **Options-object constructor:** `new StateMachine(name, context, { entryAction, exitAction,
+globalFallback, warnOnIdChange })`. The positional form takes an options object as its fifth
+  argument.
+- Exported types: `IMachineOptions`, `IStateMachineOptions`, `IAsyncStateMachineOptions`,
+  `IStateOptions`, `ICreateStateOptions`, `ICreateAsyncStateOptions`, `ITransitionOptions`,
+  `ITriggerOptions`, `TTriggerOptions`, `IStateMachineSnapshot`, `IRestoreOptions`.
+
+### Changed
+
+- **Actions receive `context` as a required, typed parameter** (`(state, context: TContext)`)
+  instead of `context?: TContext`. This is a types-only change: handlers written with an optional
+  context still type-check. At runtime the value is still `undefined` when no context was given.
+
+### Documentation
+
+- Explained how state ids are derived from names, and showed the global-trigger flag next to
+  `addGlobalTransition()`.
+- New sections on typed ids, typed context, self-transitions, and saving/resuming.
+
 ## [4.0.0] - 2026-11-15
 
 A reliability release. Every bug found in a full audit of 3.x is fixed, new observability and
@@ -110,5 +160,6 @@ The synchronous API is unchanged from 2.x.
 
 See the [git history](https://github.com/splayfee/fsm/commits/main).
 
+[4.1.0]: https://github.com/splayfee/fsm/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/splayfee/fsm/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/splayfee/fsm/compare/v2.1.5...v3.0.0

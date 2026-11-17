@@ -6,6 +6,8 @@
 
 It comes in two flavors that share one API: a synchronous `StateMachine` and an asynchronous `AsyncStateMachine` for `await`-driven work (client/server apps, workflows, async game logic). Both run every transition to completion before starting the next one, so actions can safely trigger further transitions.
 
+> **New in 4.1:** typed state and trigger ids, explicit state ids, `{ global: true }` and `globalFallback` for global transitions, opt-in self-transitions, a required and typed `context` in actions, and `snapshot()` / `restore()`. Everything is opt-in, so 4.0 code runs unchanged. See [What's new in 4.1](#whats-new-in-41).
+>
 > **Upgrading from 3.x?** Most code works unchanged. Read [Migrating from 3.x](#migrating-from-3x) for the few behaviors that changed, and the [CHANGELOG](CHANGELOG.md) for everything in each release.
 
 ---
@@ -28,6 +30,10 @@ It comes in two flavors that share one API: a synchronous `StateMachine` and an 
 - Non-throwing `canTrigger()` checks and read-only access to registered transitions.
 - Structural validation (`validate()`) for unreachable and dead-end states.
 - Diagram export to Mermaid and Graphviz DOT.
+- Typed state and trigger ids (opt-in) that catch typos at compile time.
+- Explicit state ids, or ids derived from names, with a warning when they differ.
+- Opt-in self-transitions (re-entering the current state).
+- `snapshot()` / `restore()` for saving and resuming a machine.
 - Zero runtime dependencies. ESM and CommonJS builds with TypeScript types.
 
 ---
@@ -46,6 +52,23 @@ The public API is unchanged except for one internal overload, so **TypeScript on
 8. **A failing queued trigger discards the rest of the queue**, and queued triggers re-check that the machine hasn't completed before running.
 
 State and trigger ids, error messages and all other method signatures are unchanged.
+
+---
+
+## What's new in 4.1
+
+Every change is opt-in. Existing 4.0 code compiles and behaves the same, except that a one-time console warning may appear (see [State ids](#state-ids)).
+
+| Feature                                  | How to use it                                                                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Typed state and trigger ids              | `new StateMachine<Ctx, StateId, TriggerId>(...)`                                                                             |
+| Explicit state ids                       | `createState('Choosing tile', { id: 'choosingTile' })`                                                                       |
+| Warning when an id differs from its name | On by default outside production; `warnOnIdChange: false` turns it off                                                       |
+| Clearer global triggers                  | `trigger('done', { global: true })`, or the `globalFallback: true` machine option                                            |
+| Self-transitions                         | `state.addTransition('again', state, { reenter: true })`                                                                     |
+| Typed, required `context` in actions     | Automatic: `(state, ctx) => ctx.count++`                                                                                     |
+| Save and resume                          | `machine.snapshot()` / `machine.restore(snapshot)`                                                                           |
+| Options-object forms                     | `new StateMachine(name, ctx, { entryAction, globalFallback })`, `createState(name, { isComplete, entryAction, exitAction })` |
 
 ---
 
@@ -188,6 +211,58 @@ await asyncStateMachine.start(s1);
 
 # Common Patterns
 
+## State ids
+
+**A state's id is its kebab-cased name**, unless you give it one. `'Choosing tile'` gets the id `'choosing-tile'`, so comparing `machine.currentState.id === 'Choosing tile'` is always false. Compare against `state.id`, keep the `State` object you created, or pass an explicit id:
+
+```ts
+const choosing = machine.createState('Choosing tile', { id: 'choosingTile' });
+choosing.id; // 'choosingTile', used exactly as given
+choosing.name; // 'Choosing tile', for display
+machine.getStateById('choosingTile'); // the state
+```
+
+`getStateById()` tries the exact id first, then the kebab-cased form, so it also finds a derived id by its name. Trigger ids are always kebab-cased: `trigger('pickTile')` matches a transition added as `'pick-tile'`.
+
+When a derived id differs from its name, the machine logs a warning once (not when `NODE_ENV` is `production`). Pass an explicit `id` for that state, or create the machine with `warnOnIdChange: false`:
+
+```ts
+const machine = new StateMachine('composer', context, { warnOnIdChange: false });
+```
+
+## Typed states and triggers
+
+Declare your state and trigger ids as unions to catch typos at compile time. Both type parameters default to `string`, so untyped code doesn't change.
+
+```ts
+type StateId = 'idle' | 'choosing-tile' | 'done';
+type TriggerId = 'pick' | 'back' | 'finish';
+
+const m = new StateMachine<Ctx, StateId, TriggerId>('composer', ctx);
+const idle = m.createState('idle');
+const done = m.createState('Done!', { id: 'done', isComplete: true });
+idle.addTransition('finish', done);
+
+m.trigger('finsh'); // ✗ compile error
+m.getStateById('dnoe'); // ✗ compile error
+m.currentState?.id; // StateId
+```
+
+With typed ids, a `createState(name)` call without an `id` must use a name that is already a valid id. Use kebab-case names, or pass `{ id }`.
+
+## Typed context
+
+Actions receive the machine's context as a required, typed second argument:
+
+```ts
+const machine = new StateMachine<{ score: number }>('game', { score: 0 });
+machine.createState('scoring', false, (state, ctx) => {
+  ctx.score += 1; // no `ctx?.` needed
+});
+```
+
+If you create a typed machine without a context, actions receive `undefined`. Handlers written as `(state, ctx?) => …` still type-check.
+
 ## 1. State Guards (Blocking Transitions)
 
 ```ts
@@ -198,10 +273,51 @@ const guardedExit = (state, ctx) => {
 
 ## 2. Global Transitions
 
+A global transition can fire from any state. **A plain `trigger(id)` only looks for local transitions** on the current state. To send a global trigger, say so:
+
 ```ts
 machine.addGlobalTransition('reset', startState);
-machine.trigger('reset', true); // `true` sends the trigger as a global transition
+
+machine.trigger('reset', { global: true }); // explicit
+machine.trigger('reset', true); // the same, using the original boolean form
+machine.canTrigger('reset', { global: true }); // the same rule applies to canTrigger
 ```
+
+Or create the machine with `globalFallback: true`, so a trigger with no matching local transition falls back to the global one with the same id. A local transition with the same id still wins.
+
+```ts
+const machine = new StateMachine('composer', context, { globalFallback: true });
+machine.addGlobalTransition('done', idle);
+machine.trigger('done'); // no local 'done' here, so the global transition fires
+machine.canTrigger('done'); // true
+```
+
+## Self-transitions
+
+By default, a transition to the current state throws `Already in state`. Pass `{ reenter: true }` to allow it. The state's exit actions run (and can block the transition), listeners are notified, and its entry actions run again. `previousState` is left unchanged, so `gotoPrevious()` still returns to the state before.
+
+```ts
+upkeep.addTransition('handled', upkeep, { reenter: true });
+machine.addGlobalTransition('refresh', board, { reenter: true }); // also works for global transitions
+```
+
+## Saving and resuming
+
+`snapshot()` returns a plain, JSON-serializable object. `restore()` puts a machine, started or not, back into those states. By default it does **not** run entry actions or notify listeners, so a restored machine continues exactly where it left off.
+
+```ts
+const saved = JSON.stringify(machine.snapshot());
+// { "stateId": "deploy", "previousStateId": "turn-start", "startStateId": "turn-start" }
+
+const restored = buildMachine(); // same states, not started
+restored.restore(JSON.parse(saved));
+restored.trigger('end'); // carries on from 'deploy'
+```
+
+- `restore(snapshot, { runEntry: true })` runs the restored state's entry actions and notifies listeners, as `start()` does.
+- Exit actions of the state being replaced are not run, as with `reset()`.
+- An unknown state id throws before anything changes.
+- In the sync machine, a `restore()` called from inside an action is queued. The async machine's `restore()` returns a promise and rejects while the machine is busy, like `reset()`.
 
 ## 3. Sub-State Machines (Hierarchical Composition)
 
@@ -236,11 +352,16 @@ const unsubscribe = machine.onTransition(({ from, to, trigger }) => {
 unsubscribe(); // or machine.offTransition(listener)
 ```
 
-Listeners run after exit actions have allowed the change and before entry actions, and transitions are reported in the order they happen. `trigger` is the id passed to `trigger()`, and is `undefined` for `start()` and `gotoPrevious()`. Listeners are synchronous and are not awaited by the async machine. A listener that throws aborts the transition at that point.
+Listeners run after exit actions have allowed the change and before entry actions, and transitions are reported in the order they happen. `trigger` is the id passed to `trigger()`, and is `undefined` for `start()`, `gotoPrevious()` and `restore({ runEntry: true })`. Listeners are synchronous and are not awaited by the async machine. A listener that throws aborts the transition at that point.
 
 ## 6. Introspection
 
 ```ts
+// Machine options can also be passed as an object, with or without machine-level actions:
+const machine = new StateMachine('m', context, { entryAction, exitAction, globalFallback: true });
+// ...and states can be created with an options object:
+machine.createState('Done', { isComplete: true, entryAction, exitAction });
+
 if (machine.canTrigger('next')) {
   machine.trigger('next');
 }
@@ -250,7 +371,7 @@ machine.globalTransitions; // ReadonlyMap of global transitions, keyed by trigge
 state.stateMachine; // the machine a state belongs to
 ```
 
-`canTrigger(triggerId, sendGlobal?)` never throws. It returns `false` if the machine hasn't started or has completed, if no transition matches, or if the transition targets the current state. It does not run exit actions, so a transition it reports as valid can still be blocked. On the async machine it ignores the busy flag.
+`canTrigger(triggerId, options?)` never throws. It accepts the same `{ global: true }` or `true` as `trigger()`. It returns `false` if the machine hasn't started or has completed, if no transition matches, or if the transition targets the current state without `reenter`. It does not run exit actions, so a transition it reports as valid can still be blocked. On the async machine it ignores the busy flag.
 
 ## 7. Validation and Diagrams
 
@@ -291,7 +412,7 @@ Transitions must target a state that belongs to the same machine. `addTransition
 - **Listeners are synchronous.** A listener that throws aborts the transition at that point: the new state is current but its entry action hasn't run. The error propagates to the caller.
 - **Holding a state reference.** In the async machine, `state.trigger()` is queued (not rejected) while the machine is busy, even when called from outside an action. External code should call `machine.trigger()`.
 - **`reset()` does not run exit actions.** If exit actions do cleanup (timers, subscriptions), run that cleanup yourself before calling `reset()`.
-- **Id collisions.** State and trigger ids are kebab-cased, so `"My State"` and `"my-state"` resolve to the same id.
+- **Id collisions.** Derived state ids and all trigger ids are kebab-cased, so `"My State"` and `"my-state"` resolve to the same id. Pass an explicit `{ id }` to control a state's id.
 
 ---
 

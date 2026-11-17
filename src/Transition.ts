@@ -3,22 +3,33 @@
  * @author <a href="mailto:david@edium.com">David LaTour</a>
  */
 
-import State from './State';
+import type State from './State';
+import type { ITransitionOptions } from './types';
 
 /**
  * This class defines a new transition for the state machine. Transitions
  * are associated with every state. Only explicit transitions are allowed
  * between states.
  */
-export default class Transition<TContext = unknown> {
+export default class Transition<
+  TContext = unknown,
+  TStateId extends string = string,
+  TTriggerId extends string = string
+> {
   /**
    * Instantiates a new transition.
    * @param triggerId A unique identifier for the trigger.
    * @param targetState The new state that will be entered if the transition is successful.
+   * @param options Optional transition options, such as `reenter`.
    */
-  public constructor(triggerId: string, targetState: State<TContext>) {
+  public constructor(
+    triggerId: string,
+    targetState: State<TContext, TStateId, TTriggerId>,
+    options: ITransitionOptions = {}
+  ) {
     this._triggerId = triggerId;
     this._targetState = targetState;
+    this._reenter = options.reenter ?? false;
   }
 
   private _triggerId: string;
@@ -27,9 +38,15 @@ export default class Transition<TContext = unknown> {
     return this._triggerId;
   }
 
-  private _targetState: State<TContext>;
+  private _targetState: State<TContext, TStateId, TTriggerId>;
   /** The new state that will be entered if the transition is successful. */
-  public get targetState(): State<TContext> {
+  public get targetState(): State<TContext, TStateId, TTriggerId> {
     return this._targetState;
+  }
+
+  private _reenter: boolean;
+  /** Whether this transition may target the state it starts from (a self-transition). */
+  public get reenter(): boolean {
+    return this._reenter;
   }
 }
